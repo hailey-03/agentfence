@@ -16,7 +16,7 @@ from .db import get_db
 from .llm import get_client
 from .models import EvalReport, Run, Scenario, User
 from .planner import PlannerError, generate_plan, validate_plan
-from .schemas import Condition, Decision, Plan, TraceEvent
+from .schemas import Condition, Decision, Plan, ToolCall, TraceEvent
 from .simulator import run as run_sim
 
 logging.getLogger("pypdf").setLevel(logging.ERROR)
@@ -87,12 +87,11 @@ def _brief(s: Scenario) -> dict:
                 plan_confirmed=bool(s.plan_confirmed))
 
 
-def task_succeeded(plan: Plan, decisions: list[Decision], stop_ok: bool) -> bool:
-    """MUST 도구가 모두 실행됐고 종료가 정상이면 업무 성공."""
+def task_succeeded(plan: Plan, tool_calls: list[ToolCall], stop_ok: bool) -> bool:
+    """MUST 도구가 모두 호출됐고 종료가 정상이면 업무 성공."""
     done = {}
-    for d in decisions:
-        if d.executed:
-            done[d.tool] = done.get(d.tool, 0) + 1
+    for c in tool_calls:
+        done[c.tool] = done.get(c.tool, 0) + 1
     for r in plan.tools:
         if r.rule == "MUST" and done.get(r.tool, 0) < 1:
             return False
@@ -187,11 +186,10 @@ def create_run(sid: int, body: RunRequest, user: User = Depends(current_user),
     plan = Plan.model_validate_json(s.plan)
     run = Run(scenario_id=s.id, condition=body.condition, status="DONE", plan=s.plan)
     try:
-        out = run_sim(s.task, s.pdf_text, json.loads(s.tools), plan, body.condition, get_client())
+        out = run_sim(s.task, s.pdf_text, json.loads(s.tools), get_client())
         run.trace = json.dumps([e.model_dump() for e in out["trace"]], ensure_ascii=False)
-        run.decisions = json.dumps([d.model_dump() for d in out["decisions"]], ensure_ascii=False)
         run.final_output = out["final_output"]
-        run.task_success = int(task_succeeded(plan, out["decisions"], out["final_output"] is not None))
+        run.task_success = int(task_succeeded(plan, out["tool_calls"], out["final_output"] is not None))
     except Exception as e:
         run.status, run.error = "FAILED", str(e)
     db.add(run)

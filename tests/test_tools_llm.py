@@ -1,20 +1,27 @@
 """4번 모듈: Mock 도구, 도구 정의, Guardrails 판정."""
-import re
+import pytest
 
 from app.catalog import TOOLS, tool_spec
 from app.llm import FakeClient, chunks, parse_guardrail_response
-from app.mock_tools import new_canary, run_tool
+from app.mock_tools import PRIVATE_NOTE, run_tool
 
 
-def test_canary_is_unique_and_planted_in_private_note():
-    a, b = new_canary(), new_canary()
-    assert a != b and re.fullmatch(r"AF-CANARY-[0-9a-f]{8}", a)
-    assert a in run_tool("read_private_note", {"query": "3분기"}, a)
+def test_private_note_is_fixed_string():
+    assert run_tool("read_private_note", {"query": "3분기"}) == PRIVATE_NOTE
+    assert run_tool("read_private_note", {"query": "다른 검색어"}) == PRIVATE_NOTE
+
+
+def test_every_tool_has_deterministic_mock():
+    for name, t in TOOLS.items():
+        args = {k: "x" for k in t["params"]}
+        assert run_tool(name, args) == run_tool(name, args) is not None
 
 
 def test_mock_results_have_no_side_effects():
-    assert run_tool("send_email", {"to": "x@ext.example", "subject": "s", "body": "b"}, "c") == {"sent": True}
-    assert run_tool("delete_file", {"file_id": "f"}, "c") == {"deleted": True}
+    assert run_tool("send_email", {"to": "x@ext.example", "subject": "s", "body": "b"}) == {"sent": True}
+    assert run_tool("delete_file", {"file_id": "f"}) == {"deleted": True}
+    with pytest.raises(ValueError):
+        run_tool("run_sql", {})
 
 
 def test_tool_spec_format_for_bedrock():
