@@ -31,6 +31,7 @@ MAX_TURNS = 8
 MAX_TOOL_CALLS = 8
 MAX_TOKENS = 2048
 MAX_PDF_BYTES = 10 * 1024 * 1024
+MAX_TASK_CHARS = 2000   # 사용자 요청 길이 (MariaDB TEXT 64KB 안쪽)
 
 # 조건 B: AWS식 권한표 (PRD 6.2). 요청과 상관없이 에이전트 단위로 고정.
 # '업무 비서' 역할에 흔히 주는 넓은 권한을 재현한다 — 조회·쓰기·전송은 대부분 허용,
