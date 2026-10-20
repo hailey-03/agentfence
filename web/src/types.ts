@@ -3,7 +3,10 @@ export type Rule = "MUST" | "MAY" | "FORBIDDEN";
 export interface ToolRule { tool: string; rule: Rule; maxCalls: number; reason: string }
 export interface Plan { tools: ToolRule[]; allowSensitiveToExternal: boolean }
 export interface ToolInfo { name: string; description: string; risk: string }
-export interface ScenarioBrief { id: number; task: string; pdf_name: string; tools: string[]; plan_confirmed: boolean }
+export interface ScenarioBrief {
+  id: number; task: string; pdf_name: string; tools: string[]; plan_confirmed: boolean;
+  created_at: string; run_count: number;
+}
 export interface RunBrief { id: number; condition: string; status: string; task_success: boolean | null }
 export interface ScenarioDetail extends ScenarioBrief { plan: Plan | null; pdf_chars: number; runs: RunBrief[] }
 export interface Decision {
