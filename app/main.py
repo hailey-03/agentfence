@@ -6,13 +6,14 @@ from fastapi.staticfiles import StaticFiles
 from . import config, models  # noqa: F401  (models import 시 테이블이 Base에 등록됨)
 from .auth import router as auth_router
 from .scenarios import router as scenarios_router
-from .db import Base, engine
+from .db import Base, add_missing_columns, engine
 
 if not config.JWT_SECRET_KEY:
     raise RuntimeError("JWT_SECRET_KEY가 비어 있습니다. .env.example을 .env로 복사하고 값을 넣으세요.")
 
 # 개발 초기용. 팀에서 Alembic을 도입하면 이 줄은 제거한다.
 Base.metadata.create_all(engine)
+add_missing_columns(engine)
 
 app = FastAPI(title="AgentFence")
 

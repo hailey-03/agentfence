@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from . import config
@@ -20,3 +20,20 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+# create_all은 이미 있는 테이블에 컬럼을 더하지 않는다. 나중에 생긴 nullable 컬럼은 여기에 적어 두면
+# 앱 시작 시 없을 때만 추가한다 (Alembic 도입 전까지의 임시 방편).
+NEW_COLUMNS = {"scenarios": {"plan_draft": "TEXT"}}
+
+
+def add_missing_columns(eng) -> list[str]:
+    added = []
+    for table, cols in NEW_COLUMNS.items():
+        have = {c["name"] for c in inspect(eng).get_columns(table)}
+        with eng.begin() as conn:
+            for name, typ in cols.items():
+                if name not in have:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {typ} NULL"))
+                    added.append(f"{table}.{name}")
+    return added

@@ -1,22 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { api, COND_LABEL, RISK_LABEL, RISK_ORDER, RULE_LABEL } from "../api";
+import { api, RISK_LABEL, RISK_ORDER, RULE_LABEL } from "../api";
 import ConfirmPlan, { planWarnings } from "../components/ConfirmPlan";
+import DraftCompare from "../components/DraftCompare";
 import PlanGuide from "../components/PlanGuide";
 import { useLeaveGuard } from "../components/useLeaveGuard";
-import type { Condition, Plan, Rule, RunDetail, ScenarioDetail as Detail, ToolInfo } from "../types";
+import type { Plan, Rule, RunDetail, ScenarioDetail as Detail, ToolInfo } from "../types";
 
 const RULES: Rule[] = ["MUST", "MAY", "FORBIDDEN"];
-const CONDS: Condition[] = ["A", "B", "C", "D"];
-const COND_HINT: Record<Condition, string> = {
-  A: "방어 없이 전부 실행", B: "AWS식 권한표만", C: "요청 기준 전체 검사", D: "문서를 Guardrails로 먼저 검사" };
-
 export default function ScenarioDetail() {
   const { id } = useParams(); const nav = useNavigate();
   const [s, setS] = useState<Detail | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [dirty, setDirty] = useState(false);
-  const [cond, setCond] = useState<Condition>("C");
   const [busy, setBusy] = useState(""); const [error, setError] = useState("");
   const [tools, setTools] = useState<ToolInfo[]>([]);
   const [asking, setAsking] = useState(false);
@@ -53,11 +49,11 @@ export default function ScenarioDetail() {
   const confirmAndRun = () => act("confirm", async () => {
     await api<Plan>(`/scenarios/${id}/plan`, { method: "PUT", body: JSON.stringify(plan) });
     await load();                     // 확정 반영 (실행이 실패해도 화면이 확정 상태와 맞도록)
-    const r = await api<RunDetail>(`/scenarios/${id}/runs`, { method: "POST", body: JSON.stringify({ condition: cond }) });
+    const r = await api<RunDetail>(`/scenarios/${id}/runs`, { method: "POST", body: JSON.stringify({}) });
     nav(`/runs/${r.id}`);
   });
   const run = () => act("run", async () => {
-    const r = await api<RunDetail>(`/scenarios/${id}/runs`, { method: "POST", body: JSON.stringify({ condition: cond }) });
+    const r = await api<RunDetail>(`/scenarios/${id}/runs`, { method: "POST", body: JSON.stringify({}) });
     nav(`/runs/${r.id}`);
   });
 
@@ -110,6 +106,7 @@ export default function ScenarioDetail() {
               {guideOpen ? "안내 접기 ▾" : "안내 자세히 보기 ▸"}</button>
           </div>
           {guideOpen && <PlanGuide task={s.task} plan={plan} tools={tools} />}
+          {confirmed && <DraftCompare draft={s.plan_draft} final={plan} tools={tools} />}
           <div className="table-wrap"><table className="plan-table">
             <thead><tr><th>도구</th><th>규칙</th><th>최대</th><th>이유</th></tr></thead>
             {groups.map((g) => {
@@ -154,20 +151,17 @@ export default function ScenarioDetail() {
           </div>
         </>}
         {asking && plan && <ConfirmPlan task={s.task} base={s.plan} plan={plan} tools={tools}
-          baseLabel={baseLabel} busy={busy === "confirm"} error={error} runLabel={COND_LABEL[cond]}
+          baseLabel={baseLabel} busy={busy === "confirm"} error={error}
           onCancel={() => setAsking(false)} onConfirm={confirm} onConfirmAndRun={confirmAndRun} />}
       </section>
 
       <section className="panel">
         <h2>실행</h2>
-        <p className="muted">같은 문서를 방어 조건별로 실행해 비교합니다.</p>
-        <div className="conds">{CONDS.map((cc) => (
-          <label key={cc} className={cond === cc ? "cond on" : "cond"}>
-            <input type="radio" name="cond" checked={cond === cc} onChange={() => setCond(cc)} />
-            <b>{COND_LABEL[cc]}</b><span className="muted">{COND_HINT[cc]}</span></label>))}</div>
+        <p className="muted">요청과 첨부 문서를 AI에게 주고 가짜 도구로 실행한 뒤, 확정한 계획과 비교해 보여 드려요.
+          실제로 메일이 나가거나 데이터가 바뀌지는 않아요.</p>
         <div className="actions">
           <button className="primary" onClick={run} disabled={!!busy || !confirmed}>
-            {busy === "run" ? "실행 중" : `${COND_LABEL[cond]}로 실행`}</button>
+            {busy === "run" ? "실행 중" : "실행"}</button>
           {!confirmed && <span className="hint">계획을 확정해야 실행할 수 있어요.</span>}
         </div>
         {error && <p className="error">{error}</p>}
@@ -176,9 +170,10 @@ export default function ScenarioDetail() {
       {s.runs.length > 0 && <section><h2>실행 이력</h2>
         <ul className="list">{s.runs.map((r) => (
           <li key={r.id}><Link to={`/runs/${r.id}`}>
-            <span className="row-title">{COND_LABEL[r.condition]}</span>
-            <span className="meta">업무 {r.task_success ? "성공" : "실패"}</span>
-            <span className={`pill ${r.status === "DONE" ? "ok" : "bad"}`}>{r.status}</span>
+            <span className="row-title">Run #{r.id}</span>
+            <span className="meta">{r.status !== "DONE" ? "실행 실패" : r.task_success ? "요청한 일 완료" : "요청한 일 미완료"}</span>
+            <span className={`pill ${r.status !== "DONE" ? "bad" : r.result === "MATCH" ? "ok" : "warn"}`}>
+              {r.status !== "DONE" ? "실패" : r.result === "MATCH" ? "계획과 같음" : "벗어난 행동 있음"}</span>
           </Link></li>))}</ul></section>}
     </div>
   );

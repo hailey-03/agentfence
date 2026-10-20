@@ -221,3 +221,18 @@ def test_detail_rejects_bad_ids():
     for bad in ["0", "-1", "99999999999999999999", "abc"]:                # 범위 밖·숫자 아님 (500 아님)
         assert c.get(f"/api/scenarios/{bad}", headers=h).status_code == 422, bad
         assert c.get(f"/api/runs/{bad}", headers=h).status_code == 422, bad
+
+
+def test_plan_draft_kept_after_confirm():                             # 확정 후 AI 초안과 비교
+    h = auth("draft@test.dev")
+    sid = make_scenario(h)
+    draft = c.post(f"/api/scenarios/{sid}/plan", headers=h).json()
+    edited = {**draft, "tools": [{**t, "rule": "MAY", "maxCalls": 1} if t["tool"] == "send_email" else t
+                                 for t in draft["tools"]]}
+    c.put(f"/api/scenarios/{sid}/plan", headers=h, json=edited)
+    d = c.get(f"/api/scenarios/{sid}", headers=h).json()
+    assert d["plan_confirmed"] is True
+    assert d["plan_draft"] == draft                                     # 확정해도 초안 원본은 그대로
+    assert next(t for t in d["plan"]["tools"] if t["tool"] == "send_email")["rule"] == "MAY"
+    redo = c.post(f"/api/scenarios/{sid}/plan", headers=h).json()       # 다시 만들면 초안도 새로
+    assert c.get(f"/api/scenarios/{sid}", headers=h).json()["plan_draft"] == redo

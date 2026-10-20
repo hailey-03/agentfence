@@ -38,7 +38,8 @@ class Scenario(Base):
     tools: Mapped[str] = mapped_column(Text, nullable=False)            # 노출 도구 JSON 배열
     pdf_name: Mapped[str] = mapped_column(String(255), nullable=False)  # 표시용. LLM에 전달 금지
     pdf_text: Mapped[str] = mapped_column(BigText, nullable=False)
-    plan: Mapped[str | None] = mapped_column(Text, nullable=True)       # Plan JSON
+    plan: Mapped[str | None] = mapped_column(Text, nullable=True)       # Plan JSON (사용자가 고친·확정한 계획)
+    plan_draft: Mapped[str | None] = mapped_column(Text, nullable=True) # AI가 만든 초안 원본. 확정 후 비교용
     plan_confirmed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[str] = mapped_column(String(32), default=now_iso)
 
