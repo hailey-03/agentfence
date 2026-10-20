@@ -2,9 +2,16 @@ export type Condition = "A" | "B" | "C" | "D";
 export type Rule = "MUST" | "MAY" | "FORBIDDEN";
 export interface ToolRule { tool: string; rule: Rule; maxCalls: number; reason: string }
 export interface Plan { tools: ToolRule[]; allowSensitiveToExternal: boolean }
+export interface Me { id: number; email: string; nickname: string; created_at: string }
 export interface ToolInfo { name: string; description: string; risk: string }
-export interface ScenarioBrief { id: number; task: string; pdf_name: string; tools: string[]; plan_confirmed: boolean }
-export interface RunBrief { id: number; condition: string; status: string; task_success: boolean | null }
+export interface ScenarioBrief {
+  id: number; task: string; pdf_name: string; tools: string[]; plan_confirmed: boolean;
+  created_at: string; run_count: number;
+}
+export type DiffType = "FORBIDDEN_CALL" | "MISSING_CALL" | "TOO_MANY_CALLS";
+export interface DiffItem { type: DiffType; tool: string; seq: number | null }
+export interface DiffResult { result: "MATCH" | "DIFFERENT"; diffs: DiffItem[]; firstDiffSeq: number | null }
+export interface RunBrief { id: number; condition: string; status: string; task_success: boolean | null; result: DiffResult["result"] | null }
 export interface ScenarioDetail extends ScenarioBrief { plan: Plan | null; pdf_chars: number; runs: RunBrief[] }
 export interface Decision {
   seq: number; tool: string; args: Record<string, unknown>; condition: Condition;
@@ -17,4 +24,5 @@ export interface TraceEvent {
 export interface RunDetail {
   id: number; scenario_id: number; condition: string; status: string; plan: Plan;
   trace: TraceEvent[]; decisions: Decision[]; final_output: string | null; task_success: boolean | null;
+  diff: DiffResult | null; error: string | null;
 }

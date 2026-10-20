@@ -1,19 +1,26 @@
+import { useEffect, useState } from "react";
 import { HashRouter, Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { getToken, setToken } from "./api";
+import { api, getToken, setToken } from "./api";
+import type { Me } from "./types";
 import Login from "./pages/Login";
 import Scenarios from "./pages/Scenarios";
 import ScenarioDetail from "./pages/ScenarioDetail";
 import RunResult from "./pages/RunResult";
-import Report from "./pages/Report";
+import MyPage from "./pages/MyPage";
 
 function Shell({ children }: { children: React.ReactNode }) {
   const nav = useNavigate();
+  const [me, setMe] = useState<Me | null>(null);
+  useEffect(() => { if (getToken()) api<Me>("/users/me").then(setMe).catch(() => {}); }, []);
   if (!getToken()) return <Navigate to="/login" replace />;
   return (<>
     <header className="topbar">
       <Link to="/" className="brand">AgentFence</Link>
-      <nav className="nav"><Link to="/">시나리오</Link><Link to="/report">실험 리포트</Link></nav>
-      <button className="link" onClick={() => { setToken(null); nav("/login"); }}>로그아웃</button>
+      <nav className="nav"><Link to="/">시나리오</Link></nav>
+      <div className="user-menu">
+        <Link to="/me" className="me-link">{me ? `${me.nickname} 님` : "마이페이지"}</Link>
+        <button className="link" onClick={() => { setToken(null); nav("/login"); }}>로그아웃</button>
+      </div>
     </header>
     <main className="page">{children}</main>
   </>);
@@ -25,8 +32,7 @@ export default function App() {
     <Route path="/" element={<Shell><Scenarios /></Shell>} />
     <Route path="/scenarios/:id" element={<Shell><ScenarioDetail /></Shell>} />
     <Route path="/runs/:id" element={<Shell><RunResult /></Shell>} />
-    <Route path="/report" element={<Shell><Report /></Shell>} />
-    <Route path="/report/:id" element={<Shell><Report /></Shell>} />
+    <Route path="/me" element={<Shell><MyPage /></Shell>} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes></HashRouter>);
 }

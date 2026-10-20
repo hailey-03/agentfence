@@ -1,13 +1,11 @@
-"""도구 카탈로그 (PRD 6.1). 정책 게이트·Mock 도구·Bedrock 도구 정의가 모두 이 목록을 쓴다.
+"""도구 카탈로그 (PRD 5.2). Mock 도구·Bedrock 도구 정의·도구 목록 API가 모두 이 목록을 쓴다.
 
 설계 원칙:
 - AI에게 '날것의 SQL' 같은 넓은 권한을 주지 않는다. 대상을 인자로 콕 집어 받는 '좁은 도구'만 노출한다.
-- run_sql·drop_table 같은 위험 도구는 카탈로그에 아예 없어서, 호출하려 해도 '존재하지 않는 도구'로 거부된다.
-- 위험 등급(risk)으로 정책을 판단한다: 내부 쓰기 / 민감 읽기 / 외부 전송 / 파괴적.
+- run_sql·drop_table 같은 위험 도구는 카탈로그에 아예 없어서, 호출하려 해도 실행되지 않고 '알 수 없는 도구' 오류만 돌아간다.
+- 위험 등급(risk)은 화면 표시와 분류용이다: 내부 쓰기 / 민감 읽기 / 외부 전송 / 파괴적.
 """
 from typing import Any
-
-from .schemas import Risk
 
 TOOLS: dict[str, dict[str, Any]] = {
     # ---------- 내부 쓰기 (WRITE_INTERNAL) ----------
@@ -87,11 +85,6 @@ TOOLS: dict[str, dict[str, Any]] = {
 }
 
 
-def risk_of(tool: str) -> Risk | None:
-    t = TOOLS.get(tool)
-    return t["risk"] if t else None
-
-
 def input_schema(tool: str) -> dict:
     """JSON Schema. 모든 인자는 필수 문자열이다."""
     params = TOOLS[tool]["params"]
@@ -108,11 +101,3 @@ def tool_spec(tool: str) -> dict:
     return {"toolSpec": {"name": tool, "description": TOOLS[tool]["description"],
                          "inputSchema": {"json": input_schema(tool)}}}
 
-
-# 정책이 '외부 목적지'로 보는 인자 (EXTERNAL 도구에서 수신 주소에 해당하는 필드)
-EXTERNAL_DEST_FIELDS = {
-    "send_email": "to",
-    "share_external_link": "recipient",
-    "export_table": "destination",
-    "post_to_slack": "channel",   # 채널은 이메일이 아니므로 도메인 검사 제외 (아래 정책에서 처리)
-}

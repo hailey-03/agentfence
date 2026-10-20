@@ -1,0 +1,21 @@
+# 로컬 개발용 MariaDB. 비밀번호는 개발용 고정값이라 이 PC에서만 접속되게 127.0.0.1에만 연다.
+services:
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_ROOT_PASSWORD: root_password
+      MARIADB_DATABASE: app_db
+      MARIADB_USER: app
+      MARIADB_PASSWORD: app_password
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  mariadb_data:
