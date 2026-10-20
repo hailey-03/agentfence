@@ -48,9 +48,10 @@ export default function Scenarios() {
       <section>
         <h1>새 시나리오</h1>
         <form onSubmit={create} className="stack">
-          <label>요청<textarea required rows={3} value={task} onChange={(e) => { setTask(e.target.value); setPreview(null); }} /></label>
+          <label>요청<textarea required rows={3} maxLength={2000} value={task} onChange={(e) => { setTask(e.target.value); setPreview(null); }} />
+            <span className="hint">{task.length} / 2000자</span></label>
           <label>PDF<input type="file" accept="application/pdf" onChange={(e) => setPdf(e.target.files?.[0] ?? null)} />
-            <span className="hint">텍스트만 추출해 저장하고 파일은 보관하지 않습니다.</span></label>
+            <span className="hint">텍스트만 추출해 저장하고 파일은 보관하지 않습니다. 스캔한 이미지 PDF는 글자를 읽을 수 없어 안 됩니다.</span></label>
           <fieldset><legend>Agent에게 줄 도구</legend>
             {tools.map((t) => (
               <label key={t.name} className="check">

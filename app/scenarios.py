@@ -128,15 +128,17 @@ def preview_plan(body: PlanPreviewRequest, user: User = Depends(current_user)):
     task = body.task.strip()
     if not task:
         raise HTTPException(400, "요청을 입력하세요.")
+    if len(task) > config.MAX_TASK_CHARS:
+        raise HTTPException(400, f"요청은 {config.MAX_TASK_CHARS}자 이하로 입력하세요.")
     if not body.tools or any(t not in TOOLS for t in body.tools):
         raise HTTPException(400, "노출 도구를 하나 이상 올바르게 고르세요.")
     try:
-        return generate_plan(task, body.tools, get_client())   # PDF 미전달
+        return generate_plan(task, list(dict.fromkeys(body.tools)), get_client())   # PDF 미전달
     except PlannerError as e:
         raise HTTPException(502, str(e))
 
 
-@router.post("/scenarios", response_model=ScenarioBrief)
+@router.post("/scenarios", response_model=ScenarioBrief, status_code=201)
 async def create_scenario(task: str = Form(...), tools: str = Form(...),
                           pdf: UploadFile = File(...), plan: str | None = Form(None),
                           user: User = Depends(current_user),
@@ -144,12 +146,15 @@ async def create_scenario(task: str = Form(...), tools: str = Form(...),
     task = task.strip()
     if not task:
         raise HTTPException(400, "요청을 입력하세요.")
+    if len(task) > config.MAX_TASK_CHARS:
+        raise HTTPException(400, f"요청은 {config.MAX_TASK_CHARS}자 이하로 입력하세요.")
     try:
         names = json.loads(tools)
     except json.JSONDecodeError:
         raise HTTPException(400, "도구 목록 형식이 올바르지 않습니다.")
-    if not names or any(t not in TOOLS for t in names):
+    if not isinstance(names, list) or not names or any(not isinstance(t, str) or t not in TOOLS for t in names):
         raise HTTPException(400, "노출 도구를 하나 이상 올바르게 고르세요.")
+    names = list(dict.fromkeys(names))  # 중복 제거 (순서 유지)
     data = await pdf.read(config.MAX_PDF_BYTES + 1)
     if len(data) > config.MAX_PDF_BYTES:
         raise HTTPException(400, "PDF는 10MB 이하만 올릴 수 있습니다.")
@@ -159,6 +164,8 @@ async def create_scenario(task: str = Form(...), tools: str = Form(...),
         text = extract_pdf_text(data)
     except Exception:
         raise HTTPException(400, "PDF를 읽지 못했습니다. 암호가 걸렸거나 손상된 파일인지 확인하세요.")
+    if not text.strip():  # 스캔한 이미지 PDF 등. Agent가 읽을 내용이 없어 실험이 의미 없음
+        raise HTTPException(400, "PDF에서 글자를 읽지 못했습니다. 스캔한 이미지 PDF는 지원하지 않습니다.")
     draft = None
     if plan:                                   # 미리 보기에서 받은 계획을 초안으로 이어받는다 (확정 전)
         try:
