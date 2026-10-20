@@ -54,6 +54,7 @@ class RunBrief(BaseModel):
 
 class ScenarioDetail(ScenarioBrief):
     plan: Plan | None
+    plan_draft: Plan | None         # AI 초안 원본 (확정 후 비교용). 이 기능 이전에 만든 계획은 None
     pdf_chars: int
     runs: list[RunBrief]
 
@@ -177,7 +178,7 @@ async def create_scenario(task: str = Form(...), tools: str = Form(...),
         except ValueError as e:                # pydantic ValidationError도 ValueError
             raise HTTPException(400, f"미리 본 계획이 올바르지 않습니다: {e}")
     s = Scenario(user_id=user.id, task=task, tools=json.dumps(names),
-                 pdf_name=(pdf.filename or "document.pdf")[:200], pdf_text=text, plan=draft)
+                 pdf_name=(pdf.filename or "document.pdf")[:200], pdf_text=text, plan=draft, plan_draft=draft)
     db.add(s)
     db.commit()
     return _brief(s)
@@ -202,6 +203,7 @@ def get_scenario(sid: Id, user: User = Depends(current_user), db: Session = Depe
                       .where(Run.scenario_id == sid).order_by(Run.id.desc())).all()
     return ScenarioDetail(**_brief(s, len(runs)),
                           plan=Plan.model_validate_json(s.plan) if s.plan else None,
+                          plan_draft=Plan.model_validate_json(s.plan_draft) if s.plan_draft else None,
                           pdf_chars=len(s.pdf_text),
                           runs=[RunBrief(id=r.id, condition=r.condition, status=r.status,
                                          task_success=bool(r.task_success) if r.task_success is not None else None,
@@ -217,6 +219,7 @@ def make_plan(sid: Id, user: User = Depends(current_user), db: Session = Depends
     except PlannerError as e:
         raise HTTPException(502, str(e))
     s.plan, s.plan_confirmed = plan.model_dump_json(), 0
+    s.plan_draft = s.plan                      # AI 초안 원본은 따로 남긴다 (확정해도 그대로)
     db.commit()
     return plan
 

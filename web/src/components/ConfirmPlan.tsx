@@ -50,9 +50,9 @@ export function planWarnings(task: string, plan: Plan, tools: ToolInfo[]): Warni
   return w;
 }
 
-export default function ConfirmPlan({ task, base, plan, tools, baseLabel, busy, error, runLabel, onCancel, onConfirm, onConfirmAndRun }: {
+export default function ConfirmPlan({ task, base, plan, tools, baseLabel, busy, error, onCancel, onConfirm, onConfirmAndRun }: {
   task: string; base: Plan | null; plan: Plan; tools: ToolInfo[]; baseLabel: string;
-  busy: boolean; error: string; runLabel: string;
+  busy: boolean; error: string;
   onCancel: () => void; onConfirm: () => void; onConfirmAndRun: () => void;
 }) {
   const changes = planChanges(base, plan);
@@ -83,7 +83,7 @@ export default function ConfirmPlan({ task, base, plan, tools, baseLabel, busy, 
           <button className={danger ? "danger" : undefined} onClick={onConfirm} disabled={busy}>
             {danger ? "경고를 확인했고 확정" : "확정"}</button>
           <button className={danger ? "danger" : "primary"} onClick={onConfirmAndRun} disabled={busy}>
-            {busy ? "처리 중" : `확정 후 ${runLabel}로 실행`}</button>
+            {busy ? "처리 중" : "확정 후 실행"}</button>
         </div>
       </div>
     </div>
