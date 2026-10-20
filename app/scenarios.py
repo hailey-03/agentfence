@@ -14,7 +14,7 @@ from .auth import current_user
 from .catalog import TOOLS
 from .db import get_db
 from .llm import get_client
-from .models import EvalReport, Run, Scenario, User
+from .models import Run, Scenario, User
 from .planner import PlannerError, generate_plan, validate_plan
 from .schemas import Condition, Decision, Plan, ToolCall, TraceEvent
 from .simulator import run as run_sim
@@ -195,21 +195,6 @@ def create_run(sid: int, body: RunRequest, user: User = Depends(current_user),
     db.add(run)
     db.commit()
     return _run_detail(run)
-
-
-@router.get("/eval/reports")
-def list_reports(user: User = Depends(current_user), db: Session = Depends(get_db)):
-    rows = db.scalars(select(EvalReport).order_by(EvalReport.id.desc())).all()
-    return [{"id": r.id, "created_at": r.created_at, "settings": json.loads(r.settings)} for r in rows]
-
-
-@router.get("/eval/reports/{rid}")
-def get_report(rid: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
-    r = db.get(EvalReport, rid)
-    if r is None:
-        raise HTTPException(404, "리포트를 찾을 수 없습니다.")
-    return {"id": r.id, "created_at": r.created_at, "settings": json.loads(r.settings),
-            "summary": json.loads(r.summary or "{}")}
 
 
 @router.get("/runs/{rid}", response_model=RunDetail)
