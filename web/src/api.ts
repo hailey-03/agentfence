@@ -8,7 +8,8 @@ export async function api<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const headers = new Headers(opts.headers);
   const token = getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  if (opts.body && !(opts.body instanceof FormData)) headers.set("Content-Type", "application/json");
+  // FormData·URLSearchParams(로그인 폼)는 브라우저가 Content-Type을 정한다
+  if (typeof opts.body === "string") headers.set("Content-Type", "application/json");
   const res = await fetch(`/api${path}`, { ...opts, headers });
   if (res.status === 401 && !path.startsWith("/auth")) { setToken(null); location.hash = "#/login"; }
   if (!res.ok) {

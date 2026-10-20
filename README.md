@@ -23,12 +23,12 @@ AI 에이전트의 도구 호출을 **사용자 요청 기준으로** 실행 전
 ```
 app/
   config.py    환경 변수, 조건 B 권한표(허용 도구·도메인)
-  db.py        SQLite 연결, get_db()
+  db.py        MariaDB 연결, get_db() (테스트는 SQLite)
   models.py    테이블 4개: users, scenarios, runs, eval_reports
   schemas.py   공통 형식: Plan, ToolCall, RunState, Decision, TraceEvent, GuardrailResult, 규칙 ID
   catalog.py   도구 4개의 위험 등급·입력 형식·Bedrock 도구 정의 (게이트와 Mock이 함께 씀)
   policy.py    정책 게이트: evaluate() → Decision, after_execute(), denied_message()
-  auth.py      /api/auth/signup · login · me, current_user 의존성
+  auth.py      /api/auth/signup · /api/auth/login · /api/users/me, CurrentUser 의존성 (bcrypt · JWT)
   mock_tools.py  가짜 도구 4개 + Run별 카나리
   llm.py       Bedrock Converse · Guardrails(ApplyGuardrail) 래퍼, 가짜 LLM(FakeClient)
   planner.py   요청 + 도구 정의 → 계획 초안 (PDF는 받지 않음), validate_plan()
@@ -49,11 +49,15 @@ web/           React 화면 (9번 모듈)
 
 ## 실행
 
+DB는 MariaDB다. 로컬에서는 docker compose로 띄운다 (Codespaces는 시작할 때 자동으로 뜬다).
+
 ```bash
+docker compose up -d               # MariaDB 11.4 (127.0.0.1:3306)
+cp .env.example .env               # JWT_SECRET_KEY 꼭 변경. 비어 있으면 앱이 뜨지 않음
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python -m pytest -q                # 62 passed 가 나오면 정상
+python -m pytest -q                # 50 passed 가 나오면 정상 (테스트는 MariaDB 없이 SQLite로 돈다)
 python -m scripts.try_it           # 계획 만들기 · 게이트 B vs C · Guardrails 체험
 uvicorn app.main:app --reload --port 8000
 ```
