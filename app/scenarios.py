@@ -12,11 +12,12 @@ from sqlalchemy.orm import Session
 from . import config
 from .auth import current_user
 from .catalog import TOOLS
+from .diff import diff, tool_calls
 from .db import get_db
 from .llm import get_client
 from .models import EvalReport, Run, Scenario, User
 from .planner import PlannerError, generate_plan, validate_plan
-from .schemas import Condition, Decision, Plan, TraceEvent
+from .schemas import Condition, Decision, DiffResult, Plan, TraceEvent
 from .simulator import run as run_sim
 
 logging.getLogger("pypdf").setLevel(logging.ERROR)
@@ -43,6 +44,7 @@ class RunBrief(BaseModel):
     condition: str
     status: str
     task_success: bool | None
+    result: str | None              # MATCH | DIFFERENT (DONE인 Run만)
 
 
 class ScenarioDetail(ScenarioBrief):
@@ -61,6 +63,7 @@ class RunDetail(BaseModel):
     decisions: list[Decision]
     final_output: str | None
     task_success: bool | None
+    diff: DiffResult | None         # 계획 vs 실제 비교 (F7). DONE인 Run만
 
 
 class RunRequest(BaseModel):
@@ -85,6 +88,14 @@ def extract_pdf_text(data: bytes) -> str:
 def _brief(s: Scenario) -> dict:
     return dict(id=s.id, task=s.task, pdf_name=s.pdf_name, tools=json.loads(s.tools),
                 plan_confirmed=bool(s.plan_confirmed))
+
+
+def run_diff(run: Run) -> DiffResult | None:
+    """저장된 계획 복사본과 Trace로 계획 vs 실제를 비교한다. 끝까지 실행된 Run만."""
+    if run.status != "DONE":
+        return None
+    trace = [TraceEvent.model_validate(e) for e in json.loads(run.trace or "[]")]
+    return diff(Plan.model_validate_json(run.plan), tool_calls(trace))
 
 
 def task_succeeded(plan: Plan, decisions: list[Decision], stop_ok: bool) -> bool:
@@ -149,7 +160,8 @@ def get_scenario(sid: int, user: User = Depends(current_user), db: Session = Dep
                           plan=Plan.model_validate_json(s.plan) if s.plan else None,
                           pdf_chars=len(s.pdf_text),
                           runs=[RunBrief(id=r.id, condition=r.condition, status=r.status,
-                                         task_success=bool(r.task_success) if r.task_success is not None else None)
+                                         task_success=bool(r.task_success) if r.task_success is not None else None,
+                                         result=(d.result if (d := run_diff(r)) else None))
                                 for r in runs])
 
 
@@ -230,4 +242,5 @@ def _run_detail(run: Run) -> RunDetail:
         trace=[TraceEvent.model_validate(e) for e in json.loads(run.trace or "[]")],
         decisions=[Decision.model_validate(d) for d in json.loads(run.decisions or "[]")],
         final_output=run.final_output,
-        task_success=bool(run.task_success) if run.task_success is not None else None)
+        task_success=bool(run.task_success) if run.task_success is not None else None,
+        diff=run_diff(run))

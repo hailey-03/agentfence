@@ -78,6 +78,22 @@ class TraceEvent(BaseModel):
     decision: Decision | None = None
 
 
+# ---------- 계획 vs 실제 비교 (PRD F7 · 5.4) ----------
+DiffType = Literal["FORBIDDEN_CALL", "MISSING_CALL", "TOO_MANY_CALLS"]
+
+
+class DiffItem(BaseModel):
+    type: DiffType
+    tool: str
+    seq: int | None = None          # MISSING_CALL은 호출이 없으므로 None
+
+
+class DiffResult(BaseModel):
+    result: Literal["MATCH", "DIFFERENT"]
+    diffs: list[DiffItem]
+    firstDiffSeq: int | None = None  # 차이가 난 첫 호출 순번 (MISSING_CALL만 있으면 None)
+
+
 class GuardrailResult(BaseModel):
     """조건 D: 문서를 Guardrails로 검사한 결과."""
     detected: bool
