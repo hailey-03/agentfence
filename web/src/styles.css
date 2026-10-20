@@ -78,6 +78,11 @@ button.link{border:0;background:none;color:var(--sub);padding:4px}
 .auth-form input{padding:11px 13px;border-radius:8px;transition:border-color .15s,box-shadow .15s}
 .auth-form input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,91,215,.15)}
 .auth-form input::placeholder{color:#a3acb9}
+.pw-rules{list-style:none;padding:0;margin:-6px 0 0;display:flex;flex-wrap:wrap;gap:6px}
+.pw-rules li{font-size:.78rem;padding:2px 9px 2px 22px;border-radius:999px;background:var(--bg);color:var(--sub);position:relative}
+.pw-rules li::before{content:"";position:absolute;left:9px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:#c3cad5}
+.pw-rules li.ok{background:var(--ok-bg);color:var(--ok)} .pw-rules li.ok::before{background:var(--ok)}
+.pw-rules li.bad{background:var(--bad-bg);color:var(--bad)} .pw-rules li.bad::before{background:var(--bad)}
 button.wide{width:100%;padding:12px 16px;margin-top:6px;border-radius:8px;transition:filter .15s}
 button.primary:not(:disabled):hover{filter:brightness(1.08)}
 .switch{margin:20px 0 0;text-align:center;color:var(--sub);font-size:.9rem}

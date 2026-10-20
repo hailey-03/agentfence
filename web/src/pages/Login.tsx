@@ -3,6 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { api, setToken } from "../api";
 
 const FLOW = ["요청", "계획", "검사", "비교"];
+// 가입 비밀번호 규칙 — 서버(app/auth.py PASSWORD_RULES)와 같게 유지
+const PW_RULES: [string, (p: string) => boolean][] = [
+  ["8자 이상", (p) => p.length >= 8],
+  ["영문 대문자", (p) => /[A-Z]/.test(p)],
+  ["영문 소문자", (p) => /[a-z]/.test(p)],
+  ["숫자", (p) => /[0-9]/.test(p)],
+  ["특수문자", (p) => /[^A-Za-z0-9\s]/.test(p)],
+];
+const utf8Bytes = (s: string) => new TextEncoder().encode(s).length;
+
 const CONDS = [["A", "방어 없음"], ["B", "AWS식 권한표"], ["C", "AgentFence"], ["D", "Guardrails"]];
 
 /** 게이트가 실제로 하는 일을 보여주는 예시 카드 (요청 범위 안 호출은 통과, 숨은 지시로 생긴 호출은 차단) */
@@ -47,6 +57,9 @@ export default function Login() {
 
   function switchMode(m: "login" | "signup") { setMode(m); setError(""); }
   const signup = mode === "signup";
+  const pwChecks = PW_RULES.map(([label, test]) => ({ label, ok: test(password) }));
+  const pwTooLong = utf8Bytes(password) > 72;
+  const pwOk = pwChecks.every((c) => c.ok) && !pwTooLong;
 
   return (
     <div className="split">
@@ -88,12 +101,16 @@ export default function Login() {
             {signup && (
               <label>닉네임<input required maxLength={50} autoComplete="nickname" placeholder="화면에 표시될 이름"
                 value={nickname} onChange={(e) => setNickname(e.target.value)} /></label>)}
-            <label>비밀번호<input type="password" required minLength={8} placeholder="8자 이상"
-              autoComplete={signup ? "new-password" : "current-password"}
-              value={password} onChange={(e) => setPassword(e.target.value)} />
-              {signup && <span className="hint">8자 이상 · 72바이트 이하 (한글은 24자까지)</span>}</label>
+            <label>비밀번호<input type="password" required placeholder={signup ? "대·소문자, 숫자, 특수문자 포함 8자 이상" : "비밀번호"}
+              autoComplete={signup ? "new-password" : "current-password"} aria-describedby={signup ? "pw-rules" : undefined}
+              value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+            {signup && (
+              <ul id="pw-rules" className="pw-rules" aria-live="polite">
+                {pwChecks.map((c) => <li key={c.label} className={c.ok ? "ok" : ""}>{c.label}</li>)}
+                {pwTooLong && <li className="bad">72바이트 이하 (한글은 글자당 3바이트)</li>}
+              </ul>)}
             {error && <p className="error" role="alert">{error}</p>}
-            <button className="primary wide" disabled={busy}>
+            <button className="primary wide" disabled={busy || (signup && !pwOk)}>
               {busy ? "잠시만요…" : signup ? "가입하고 시작하기" : "로그인"}</button>
           </form>
 
