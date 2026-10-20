@@ -6,14 +6,18 @@ export default function Login() {
   const nav = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("signup");
   const [email, setEmail] = useState(""); const [password, setPassword] = useState("");
+  const [nickname, setNickname] = useState("");
   const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
 
   async function submit(e: FormEvent) {
     e.preventDefault(); setError(""); setBusy(true);
     try {
-      const { token } = await api<{ token: string }>(`/auth/${mode}`, {
-        method: "POST", body: JSON.stringify({ email, password }) });
-      setToken(token); nav("/");
+      // 가입은 사용자 정보만 돌려주므로, 가입 직후 같은 값으로 로그인해 토큰을 받는다
+      if (mode === "signup")
+        await api("/auth/signup", { method: "POST", body: JSON.stringify({ email, password, nickname }) });
+      const { access_token } = await api<{ access_token: string }>("/auth/login", {
+        method: "POST", body: new URLSearchParams({ username: email, password }) });
+      setToken(access_token); nav("/");
     } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   }
 
@@ -27,9 +31,12 @@ export default function Login() {
       </div>
       <form onSubmit={submit} className="stack">
         <label>이메일<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+        {mode === "signup" && (
+          <label>닉네임<input required maxLength={50} value={nickname}
+            onChange={(e) => setNickname(e.target.value)} /></label>)}
         <label>비밀번호<input type="password" required minLength={8} value={password}
           onChange={(e) => setPassword(e.target.value)} />
-          {mode === "signup" && <span className="hint">8자 이상</span>}</label>
+          {mode === "signup" && <span className="hint">8자 이상 · 72바이트 이하 (한글 24자)</span>}</label>
         {error && <p className="error">{error}</p>}
         <button className="primary" disabled={busy}>{mode === "signup" ? "가입하고 시작" : "로그인"}</button>
       </form>
