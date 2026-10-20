@@ -23,7 +23,31 @@ legend{font-weight:500;padding:0 4px} .check{display:flex;gap:10px;align-items:b
 button{font:inherit;font-weight:500;padding:9px 16px;border-radius:6px;cursor:pointer;border:1px solid var(--rule);background:var(--panel);color:var(--ink)}
 button:disabled{opacity:.5;cursor:not-allowed} button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 button.link{border:0;background:none;color:var(--sub);padding:4px}
-.auth{max-width:380px;margin:12vh auto;padding:0 24px} .auth-title{font-size:2rem}
+/* 로그인 화면: 왼쪽 도구 소개 · 오른쪽 가입/로그인 (좁은 화면에서는 위아래로) */
+.split{display:grid;grid-template-columns:1fr 1fr;min-height:100vh;word-break:keep-all} /* 한글 단어 중간에서 줄바꿈 안 함 */
+.intro{background:linear-gradient(160deg,#1d2b4f 0%,#2d5bd7 100%);color:#fff;display:flex;align-items:center;padding:56px 48px}
+.intro-inner{max-width:520px;margin-left:auto}
+.intro-brand{font-weight:700;letter-spacing:.02em;opacity:.85;margin:0 0 20px}
+.intro-title{font-size:1.75rem;font-weight:700;line-height:1.4;margin:0 0 14px}
+.intro-lead{color:#d9e2fb;margin:0 0 28px}
+.steps{list-style:none;padding:0;margin:0 0 28px;display:grid;gap:14px}
+.steps li{display:flex;gap:14px;align-items:flex-start}
+.steps b{font-weight:600} .steps p{margin:2px 0 0;color:#c9d5f7;font-size:.92rem}
+.step-num{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.16);font-weight:600;font-size:.9rem}
+.intro-label{font-size:.85rem;color:#c9d5f7;margin:0 0 8px}
+.intro-conds ul{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px}
+.intro-conds li{font-size:.85rem;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.3);color:#e6ecfc}
+.intro-conds li b{margin-right:6px}
+.intro-conds li.on{background:#fff;color:var(--accent);border-color:#fff;font-weight:500}
+.auth-side{display:flex;align-items:center;padding:56px 48px;background:var(--panel)}
+.auth-card{width:100%;max-width:380px;margin-right:auto}
+.auth-heading{font-size:1.5rem;font-weight:700;margin:0 0 4px}
+button.wide{width:100%;padding:11px 16px;margin-top:4px}
+@media(max-width:860px){
+  .split{grid-template-columns:1fr} .intro,.auth-side{padding:40px 16px}
+  .intro-inner,.auth-card{margin:0 auto} .intro-title{font-size:1.4rem}
+  .auth-side{order:-1} /* 휴대폰에서는 로그인 창을 먼저, 소개는 스크롤 아래로 */
+}
 .tabs{display:flex;gap:4px;margin:24px 0 16px;border-bottom:1px solid var(--rule)}
 .tab{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--sub)}
 .tab.on{color:var(--ink);border-bottom-color:var(--accent)}
