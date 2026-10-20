@@ -89,6 +89,7 @@ table.grid th{text-align:center;font-size:.85rem;padding:4px 8px}
 .stats div{background:var(--bg);border-radius:8px;padding:14px 16px;display:grid;gap:2px}
 .stats b{font-size:1.6rem;font-weight:700} .stats span{color:var(--sub);font-size:.88rem}
 @media(max-width:600px){
-  .topbar{flex-wrap:wrap;gap:8px 12px;padding:12px 16px} .nav{margin-left:0;order:3;width:100%}
+  .topbar{flex-wrap:wrap;gap:8px 12px;padding:12px 16px}
+  .topbar .brand+.nav{margin-left:0;order:3;flex:1 1 100%} .nav a,.me-link{white-space:nowrap}
   .page{padding:20px 16px 48px} .info{grid-template-columns:80px minmax(0,1fr)}
 }
