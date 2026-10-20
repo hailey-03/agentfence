@@ -64,6 +64,12 @@ class RunDetail(BaseModel):
     final_output: str | None
     task_success: bool | None
     diff: DiffResult | None         # 계획 vs 실제 비교 (F7). DONE인 Run만
+    error: str | None = None        # FAILED일 때 오류 메시지
+
+
+class PlanPreviewRequest(BaseModel):
+    task: str
+    tools: list[str]
 
 
 class RunRequest(BaseModel):
@@ -116,9 +122,24 @@ def list_tools():
     return [ToolInfo(name=n, description=t["description"], risk=t["risk"]) for n, t in TOOLS.items()]
 
 
+@router.post("/plan/preview", response_model=Plan)
+def preview_plan(body: PlanPreviewRequest, user: User = Depends(current_user)):
+    """시나리오를 만들기 전에, 요청과 도구만 보고 어떻게 처리할지 미리 보여 준다 (PDF 없음)."""
+    task = body.task.strip()
+    if not task:
+        raise HTTPException(400, "요청을 입력하세요.")
+    if not body.tools or any(t not in TOOLS for t in body.tools):
+        raise HTTPException(400, "노출 도구를 하나 이상 올바르게 고르세요.")
+    try:
+        return generate_plan(task, body.tools, get_client())   # PDF 미전달
+    except PlannerError as e:
+        raise HTTPException(502, str(e))
+
+
 @router.post("/scenarios", response_model=ScenarioBrief)
 async def create_scenario(task: str = Form(...), tools: str = Form(...),
-                          pdf: UploadFile = File(...), user: User = Depends(current_user),
+                          pdf: UploadFile = File(...), plan: str | None = Form(None),
+                          user: User = Depends(current_user),
                           db: Session = Depends(get_db)):
     task = task.strip()
     if not task:
@@ -138,8 +159,14 @@ async def create_scenario(task: str = Form(...), tools: str = Form(...),
         text = extract_pdf_text(data)
     except Exception:
         raise HTTPException(400, "PDF를 읽지 못했습니다. 암호가 걸렸거나 손상된 파일인지 확인하세요.")
+    draft = None
+    if plan:                                   # 미리 보기에서 받은 계획을 초안으로 이어받는다 (확정 전)
+        try:
+            draft = validate_plan(Plan.model_validate_json(plan), names).model_dump_json()
+        except ValueError as e:                # pydantic ValidationError도 ValueError
+            raise HTTPException(400, f"미리 본 계획이 올바르지 않습니다: {e}")
     s = Scenario(user_id=user.id, task=task, tools=json.dumps(names),
-                 pdf_name=(pdf.filename or "document.pdf")[:200], pdf_text=text)
+                 pdf_name=(pdf.filename or "document.pdf")[:200], pdf_text=text, plan=draft)
     db.add(s)
     db.commit()
     return _brief(s)
@@ -243,4 +270,4 @@ def _run_detail(run: Run) -> RunDetail:
         decisions=[Decision.model_validate(d) for d in json.loads(run.decisions or "[]")],
         final_output=run.final_output,
         task_success=bool(run.task_success) if run.task_success is not None else None,
-        diff=run_diff(run))
+        diff=run_diff(run), error=run.error)

@@ -74,3 +74,26 @@ table.grid th{text-align:center;font-size:.85rem;padding:4px 8px}
 .cell.ok{background:var(--ok-bg);color:var(--ok);font-weight:600}
 .cell.warn{background:#fdf0d5;color:#8a5a00} .cell.neutral{background:var(--bg);color:var(--sub)}
 .ok-text{color:var(--ok)} .bad-text{color:var(--bad)}
+.guide{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px;display:grid;gap:12px}
+.guide-lead{margin:0} .guide h3{font-size:.95rem;margin:0 0 4px}
+.guide ul{margin:0;padding-left:20px;display:grid;gap:4px} .guide code{margin-right:6px}
+.guide-group{border-left:4px solid var(--rule);padding-left:12px}
+.guide-group.do{border-color:var(--ok)} .guide-group.may{border-color:#d9a400} .guide-group.dont{border-color:var(--bad)}
+.guide .hint{margin:0}
+.modal-back{position:fixed;inset:0;background:rgba(20,28,40,.45);display:grid;place-items:center;padding:16px;z-index:10}
+.modal{background:var(--panel);border-radius:10px;padding:22px 24px;max-width:560px;width:100%;max-height:90vh;overflow:auto;display:grid;gap:14px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.modal h2{margin:0} .modal h3{font-size:.95rem;margin:0 0 6px} .modal .actions{justify-content:flex-end}
+.modal .count{font-size:.8rem;color:var(--accent);margin-left:4px}
+.changes,.warnings{margin:0;padding-left:0;list-style:none;display:grid;gap:6px}
+.changes li{font-family:var(--mono);font-size:.85rem;background:var(--bg);border-radius:6px;padding:6px 10px}
+.warnings li{border-radius:6px;padding:8px 10px;font-size:.9rem}
+.warnings li.danger{background:var(--bad-bg);color:var(--bad)} .warnings li.info{background:#eef2f8;color:var(--sub)}
+button.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+.plan-table .group-row td{background:var(--bg);font-size:.88rem;padding:6px 10px}
+.plan-table .group-row button.link{margin-left:8px;font-size:.85rem;color:var(--accent)}
+.plan-table tr.warn-row td{background:var(--bad-bg)} .warn-icon{cursor:help}
+.warnings.live{margin-top:12px}
+.tool-desc{display:block;font-size:.8rem;color:var(--sub);line-height:1.35;margin-top:2px;max-width:260px}
+.plan-summary{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;background:var(--bg);border-radius:8px;padding:10px 14px;font-size:.92rem}
+.plan-summary button.link{margin-left:auto;color:var(--accent);font-size:.88rem}
+.plan-summary + .guide{margin-top:10px}

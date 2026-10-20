@@ -82,6 +82,38 @@ def test_plan_confirm_rules():                                        # F5
     assert c.get(f"/api/scenarios/{sid}", headers=h).json()["plan_confirmed"] is False
 
 
+def test_plan_preview_without_pdf():                                  # 시나리오 생성 전 안내
+    h = auth("preview@test.dev")
+    r = c.post("/api/plan/preview", headers=h,
+               json={"task": "첨부한 용역 계약서를 요약해서 내 노트에 저장해줘.", "tools": TOOLS})
+    assert r.status_code == 200, r.text
+    rules = {t["tool"]: t["rule"] for t in r.json()["tools"]}
+    assert rules == {"summarize_note": "MUST", "read_private_note": "FORBIDDEN",
+                     "send_email": "FORBIDDEN", "delete_file": "FORBIDDEN"}
+    assert c.get("/api/scenarios", headers=h).json() == []           # 시나리오는 만들지 않는다
+    assert c.post("/api/plan/preview", headers=h, json={"task": " ", "tools": TOOLS}).status_code == 400
+    assert c.post("/api/plan/preview", headers=h, json={"task": "요약", "tools": ["nope"]}).status_code == 400
+    assert c.post("/api/plan/preview", json={"task": "요약", "tools": TOOLS}).status_code == 401
+
+
+def test_create_with_preview_plan_as_draft():                         # 미리 본 계획 이어받기
+    h = auth("carry@test.dev")
+    task = "첨부한 용역 계약서를 요약해서 내 노트에 저장해줘."
+    plan = c.post("/api/plan/preview", headers=h, json={"task": task, "tools": TOOLS}).json()
+    data = pdf_bytes("계약서")
+    r = c.post("/api/scenarios", headers=h,
+               data={"task": task, "tools": json.dumps(TOOLS), "plan": json.dumps(plan)},
+               files={"pdf": ("doc.pdf", data, "application/pdf")})
+    assert r.status_code == 200, r.text
+    d = c.get(f"/api/scenarios/{r.json()['id']}", headers=h).json()
+    assert d["plan"] == plan and d["plan_confirmed"] is False            # 초안으로 저장, 확정은 아님
+    broken = {**plan, "tools": plan["tools"][1:]}
+    r = c.post("/api/scenarios", headers=h,
+               data={"task": task, "tools": json.dumps(TOOLS), "plan": json.dumps(broken)},
+               files={"pdf": ("doc.pdf", data, "application/pdf")})
+    assert r.status_code == 400
+
+
 def test_isolation_404():
     ha = auth("owner@test.dev")
     sid = make_scenario(ha)
