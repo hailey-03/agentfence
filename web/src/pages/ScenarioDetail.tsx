@@ -93,7 +93,7 @@ export default function ScenarioDetail() {
     <div className="stack-lg">
       <Link to="/" className="back">← 시나리오 목록</Link>
       <section><h1 className="task-title">{s.task}</h1>
-        <p className="meta">{s.pdf_name} · 추출 텍스트 {s.pdf_chars.toLocaleString()}자</p></section>
+        <p className="meta">{s.pdf_name} · 추출 텍스트 {s.pdf_chars.toLocaleString()}자 · {new Date(s.created_at).toLocaleString("ko-KR")}</p></section>
 
       <section className="panel">
         <div className="panel-head">

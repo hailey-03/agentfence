@@ -4,6 +4,10 @@ import { api, RISK_LABEL as RISK } from "../api";
 import PlanGuide from "../components/PlanGuide";
 import type { Plan, ScenarioBrief, ToolInfo } from "../types";
 
+// 서버는 UTC ISO 문자열로 준다 → 사용자 지역 시간으로 "10. 20. 오후 1:05" 형태
+const fmtDate = (iso: string) => new Date(iso).toLocaleString("ko-KR",
+  { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" });
+
 export default function Scenarios() {
   const nav = useNavigate();
   const [list, setList] = useState<ScenarioBrief[] | null>(null);
@@ -75,7 +79,7 @@ export default function Scenarios() {
           <ul className="list">{list.map((s) => (
             <li key={s.id}><Link to={`/scenarios/${s.id}`}>
               <span className="row-title">{s.task}</span>
-              <span className="meta">{s.pdf_name}</span>
+              <span className="meta">{s.pdf_name} · {fmtDate(s.created_at)}{s.run_count > 0 && ` · 실행 ${s.run_count}회`}</span>
               <span className={s.plan_confirmed ? "pill ok" : "pill"}>{s.plan_confirmed ? "계획 확정" : "계획 전"}</span>
             </Link></li>))}</ul>}
       </section>
