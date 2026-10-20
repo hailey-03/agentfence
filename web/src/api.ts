@@ -15,7 +15,7 @@ export async function api<T>(path: string, opts: RequestInit = {}): Promise<T> {
   if (!res.ok) {
     let msg = `요청 실패 (${res.status})`;
     try { const b = await res.json(); if (typeof b.detail === "string") msg = b.detail;
-      else if (Array.isArray(b.detail)) msg = b.detail.map((d: { msg: string }) => d.msg).join(", "); } catch { /**/ }
+      else if (Array.isArray(b.detail)) msg = b.detail.map((d: { msg: string }) => d.msg.replace(/^Value error, /, "")).join(", "); } catch { /**/ }
     throw new ApiError(res.status, msg);
   }
   return res.json() as Promise<T>;

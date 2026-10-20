@@ -20,8 +20,8 @@ def pdf_bytes(visible, hidden=""):
 
 
 def auth(email):
-    c.post("/api/auth/signup", json={"email": email, "password": "password123", "nickname": "테스터"})
-    t = c.post("/api/auth/login", data={"username": email, "password": "password123"}).json()["access_token"]
+    c.post("/api/auth/signup", json={"email": email, "password": "Password1!", "nickname": "테스터"})
+    t = c.post("/api/auth/login", data={"username": email, "password": "Password1!"}).json()["access_token"]
     return {"Authorization": f"Bearer {t}"}
 
 

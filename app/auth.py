@@ -1,6 +1,7 @@
 """가입·로그인 (PRD F1). 비밀번호는 bcrypt, 로그인 결과는 JWT(HS256) 액세스 토큰.
 
   POST /api/auth/signup  JSON {email, password, nickname} → 201 사용자 정보 / 중복 이메일 409
+                         password: 8자 이상, 대문자·소문자·숫자·특수문자 각 1개 이상, 72바이트 이하
   POST /api/auth/login   form {username=이메일, password} → {access_token, token_type} / 실패 401
   GET  /api/users/me     Bearer 토큰 → 사용자 정보 / 토큰 없거나 무효 401
 
@@ -8,6 +9,7 @@
     from .auth import CurrentUser
     def handler(user: CurrentUser): ...
 """
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
@@ -28,6 +30,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 DbSession = Annotated[Session, Depends(get_db)]
 
 BCRYPT_MAX_BYTES = 72  # bcrypt는 72바이트까지만 쓴다 (한글은 글자당 3바이트)
+# 가입 비밀번호 규칙: 8자 이상 + 아래 네 종류를 각각 하나 이상 (로그인 때는 검사하지 않음 — 기존 계정 보호)
+PASSWORD_RULES = [
+    (re.compile(r"[A-Z]"), "영문 대문자"),
+    (re.compile(r"[a-z]"), "영문 소문자"),
+    (re.compile(r"[0-9]"), "숫자"),
+    (re.compile(r"[^A-Za-z0-9\s]"), "특수문자"),
+]
 
 
 # ---------- 비밀번호 · 토큰 ----------
@@ -76,6 +85,9 @@ class UserCreate(BaseModel):
     def password_fits_bcrypt(cls, v: str) -> str:
         if len(v.encode()) > BCRYPT_MAX_BYTES:
             raise ValueError(f"비밀번호는 {BCRYPT_MAX_BYTES}바이트 이하여야 합니다. (한글은 글자당 3바이트)")
+        missing = [name for pattern, name in PASSWORD_RULES if not pattern.search(v)]
+        if missing:
+            raise ValueError(f"비밀번호에 {'·'.join(missing)}를 하나 이상 넣어 주세요.")
         return v
 
     @field_validator("nickname")
