@@ -104,3 +104,50 @@ def test_create_rejects_pdf_without_text():
     doc = pymupdf.open(); doc.new_page()                          # 글자 없는 페이지 (스캔본과 같음)
     r = _post(h, data=doc.tobytes())
     assert r.status_code == 400 and "글자" in r.json()["detail"]
+
+
+def test_list_and_detail_show_created_at_and_run_count():
+    h = auth("f3-list@test.dev")
+    first = _post(h, task="첫 번째").json()["id"]
+    second = _post(h, task="두 번째").json()["id"]
+    plan = c.post(f"/api/scenarios/{second}/plan", headers=h).json()
+    c.put(f"/api/scenarios/{second}/plan", headers=h, json=plan)
+    for cond in ["A", "C"]:
+        c.post(f"/api/scenarios/{second}/runs", headers=h, json={"condition": cond})
+
+    rows = c.get("/api/scenarios", headers=h).json()
+    assert [r["id"] for r in rows] == [second, first]                   # 최신순
+    assert rows[0]["run_count"] == 2 and rows[1]["run_count"] == 0
+    assert all(r["created_at"] for r in rows)
+
+    d = c.get(f"/api/scenarios/{second}", headers=h).json()
+    assert d["run_count"] == 2 and [r["condition"] for r in d["runs"]] == ["C", "A"]
+    assert d["plan_confirmed"] is True and d["pdf_chars"] > 0
+
+
+def test_list_does_not_load_pdf_text_or_traces():
+    from sqlalchemy import event
+    from app.db import engine
+    h = auth("f3-sql@test.dev")
+    sid = _post(h).json()["id"]
+    sqls: list[str] = []
+    listener = lambda conn, cur, stmt, *a: sqls.append(stmt)   # noqa: E731
+    event.listen(engine, "before_cursor_execute", listener)
+    try:
+        c.get("/api/scenarios", headers=h)
+        list_sql = [s for s in sqls if "FROM scenarios" in s]
+        sqls.clear()
+        c.get(f"/api/scenarios/{sid}", headers=h)
+        run_sql = [s for s in sqls if "FROM runs" in s]
+    finally:
+        event.remove(engine, "before_cursor_execute", listener)
+    assert list_sql and not any("pdf_text" in s for s in list_sql)      # 목록: PDF 본문 안 읽음
+    assert run_sql and not any("trace" in s or "decisions" in s for s in run_sql)  # 상세: Trace 안 읽음
+
+
+def test_detail_rejects_bad_ids():
+    h = auth("f3-ids@test.dev")
+    assert c.get("/api/scenarios/12345678", headers=h).status_code == 404   # 없는 ID
+    for bad in ["0", "-1", "99999999999999999999", "abc"]:                # 범위 밖·숫자 아님 (500 아님)
+        assert c.get(f"/api/scenarios/{bad}", headers=h).status_code == 422, bad
+        assert c.get(f"/api/runs/{bad}", headers=h).status_code == 422, bad
