@@ -23,34 +23,78 @@ legend{font-weight:500;padding:0 4px} .check{display:flex;gap:10px;align-items:b
 button{font:inherit;font-weight:500;padding:9px 16px;border-radius:6px;cursor:pointer;border:1px solid var(--rule);background:var(--panel);color:var(--ink)}
 button:disabled{opacity:.5;cursor:not-allowed} button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 button.link{border:0;background:none;color:var(--sub);padding:4px}
-/* 로그인 화면: 왼쪽 도구 소개 · 오른쪽 가입/로그인 (좁은 화면에서는 위아래로) */
-.split{display:grid;grid-template-columns:1fr 1fr;min-height:100vh;word-break:keep-all} /* 한글 단어 중간에서 줄바꿈 안 함 */
-.intro{background:linear-gradient(160deg,#1d2b4f 0%,#2d5bd7 100%);color:#fff;display:flex;align-items:center;padding:56px 48px}
-.intro-inner{max-width:520px;margin-left:auto}
-.intro-brand{font-weight:700;letter-spacing:.02em;opacity:.85;margin:0 0 20px}
-.intro-title{font-size:1.75rem;font-weight:700;line-height:1.4;margin:0 0 14px}
-.intro-lead{color:#d9e2fb;margin:0 0 28px}
-.steps{list-style:none;padding:0;margin:0 0 28px;display:grid;gap:14px}
-.steps li{display:flex;gap:14px;align-items:flex-start}
-.steps b{font-weight:600} .steps p{margin:2px 0 0;color:#c9d5f7;font-size:.92rem}
-.step-num{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.16);font-weight:600;font-size:.9rem}
-.intro-label{font-size:.85rem;color:#c9d5f7;margin:0 0 8px}
-.intro-conds ul{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px}
-.intro-conds li{font-size:.85rem;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.3);color:#e6ecfc}
-.intro-conds li b{margin-right:6px}
-.intro-conds li.on{background:#fff;color:var(--accent);border-color:#fff;font-weight:500}
-.auth-side{display:flex;align-items:center;padding:56px 48px;background:var(--panel)}
-.auth-card{width:100%;max-width:380px;margin-right:auto}
-.auth-heading{font-size:1.5rem;font-weight:700;margin:0 0 4px}
-button.wide{width:100%;padding:11px 16px;margin-top:4px}
-@media(max-width:860px){
-  .split{grid-template-columns:1fr} .intro,.auth-side{padding:40px 16px}
-  .intro-inner,.auth-card{margin:0 auto} .intro-title{font-size:1.4rem}
-  .auth-side{order:-1} /* 휴대폰에서는 로그인 창을 먼저, 소개는 스크롤 아래로 */
+/* ---------- 로그인 화면: 왼쪽 도구 소개 · 오른쪽 가입/로그인 ---------- */
+.split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);min-height:100vh;word-break:keep-all} /* 한글 단어 중간 줄바꿈 방지 */
+
+.intro{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:28px;
+  padding:32px clamp(28px,5vw,72px);color:#fff;background:#0f1a36}
+.intro::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(60% 50% at 85% 10%,rgba(76,123,255,.45),transparent 70%),
+             radial-gradient(50% 40% at 0% 100%,rgba(45,91,215,.35),transparent 70%)}
+.intro::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.07;
+  background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);
+  background-size:32px 32px;mask-image:linear-gradient(180deg,#000,transparent 80%)}
+.intro>*{position:relative;z-index:1}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;letter-spacing:.01em}
+.logo-mark{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#7da2ff,#2d5bd7);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+.intro-body{max-width:560px}
+.eyebrow{display:inline-block;margin:0 0 14px;font-size:.8rem;font-weight:500;color:#a9c0ff;
+  padding:3px 10px;border:1px solid rgba(169,192,255,.35);border-radius:999px}
+.intro-title{font-size:clamp(1.6rem,2.4vw,2.15rem);font-weight:700;line-height:1.35;margin:0 0 14px;letter-spacing:-.01em}
+.intro-lead{color:#bccbef;margin:0 0 22px;max-width:500px}
+
+.gate{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;
+  backdrop-filter:blur(6px);margin-bottom:20px;overflow:hidden}
+.gate-head{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.1)}
+.gate-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25)}
+.gate-title{margin-left:8px;font-size:.8rem;color:#bccbef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gate-rows{list-style:none;margin:0;padding:6px 0}
+.gate-rows li{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:4px 12px;padding:8px 14px;font-size:.85rem}
+.gate-tool{font-family:var(--mono);color:#fff}
+.gate-arg{color:#8fa3d6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gate-badge{font-size:.72rem;font-weight:600;padding:2px 9px;border-radius:999px}
+.gate-badge.allow{background:rgba(52,199,123,.16);color:#6fe0a3}
+.gate-badge.deny{background:#ff5d4a;color:#fff}
+.gate-rows li.deny{background:rgba(255,93,74,.1);box-shadow:inset 3px 0 0 #ff5d4a}
+.gate-rows li.deny .gate-arg{color:#ffb3a9;text-decoration:line-through}
+.gate-why{grid-column:1/-1;font-size:.75rem;color:#ffb3a9}
+
+.steps{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.steps li{display:grid;gap:2px;padding:12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.step-num{font-family:var(--mono);font-size:.72rem;color:#7da2ff}
+.steps b{font-size:.9rem;font-weight:600} .steps span:last-child{font-size:.75rem;color:#93a6d8;line-height:1.45}
+
+.cond-chips{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px;font-size:.8rem}
+.cond-chips li{padding:4px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.18);color:#bccbef}
+.cond-chips li b{margin-right:6px;color:#fff} .cond-chips li.on{background:#fff;color:var(--accent);border-color:#fff;font-weight:500}
+.cond-chips li.on b{color:var(--accent)}
+
+.auth-side{display:grid;place-items:center;padding:48px clamp(20px,5vw,64px);background:var(--panel)}
+.auth-card{width:100%;max-width:400px}
+.auth-logo{display:none;margin-bottom:28px;color:var(--ink)} /* 휴대폰에서만: 소개 패널이 아래로 내려가므로 */
+.auth-heading{font-size:1.65rem;font-weight:700;margin:0 0 6px;letter-spacing:-.01em}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin:28px 0 22px;background:var(--bg);border-radius:10px}
+.seg button{border:0;background:none;color:var(--sub);padding:8px;border-radius:7px}
+.seg button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(16,24,40,.12)}
+.auth-form{display:grid;gap:16px}
+.auth-form input{padding:11px 13px;border-radius:8px;transition:border-color .15s,box-shadow .15s}
+.auth-form input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,91,215,.15)}
+.auth-form input::placeholder{color:#a3acb9}
+button.wide{width:100%;padding:12px 16px;margin-top:6px;border-radius:8px;transition:filter .15s}
+button.primary:not(:disabled):hover{filter:brightness(1.08)}
+.switch{margin:20px 0 0;text-align:center;color:var(--sub);font-size:.9rem}
+.text-link{border:0;background:none;padding:0;color:var(--accent);font-weight:500}
+.text-link:hover{text-decoration:underline}
+
+@media(max-width:1100px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:880px){
+  .split{grid-template-columns:1fr}
+  .auth-side{order:-1;padding:40px 16px 48px} /* 휴대폰에서는 로그인 창을 먼저, 소개는 아래로 */
+  .auth-logo{display:flex}
+  .intro{padding:36px 16px;gap:28px}
 }
-.tabs{display:flex;gap:4px;margin:24px 0 16px;border-bottom:1px solid var(--rule)}
-.tab{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--sub)}
-.tab.on{color:var(--ink);border-bottom-color:var(--accent)}
+@media(max-width:420px){.gate-arg{display:none}.gate-rows li{grid-template-columns:1fr auto}}
 .list{list-style:none;padding:0;margin:0}
 .list li a{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:12px 0;border-bottom:1px solid var(--rule);color:var(--ink)}
 .row-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .list .meta{grid-column:1}
