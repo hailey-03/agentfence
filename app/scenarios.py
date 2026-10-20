@@ -2,12 +2,13 @@
 import io
 import json
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Path, UploadFile
 from pypdf import PdfReader
 from pydantic import BaseModel
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, defer, load_only
 
 from . import config
 from .auth import current_user
@@ -21,6 +22,8 @@ from .simulator import run as run_sim
 
 logging.getLogger("pypdf").setLevel(logging.ERROR)
 router = APIRouter(tags=["scenarios"])
+# 경로의 ID. BIGINT 범위 밖(0 이하·너무 큰 수)은 DB에 묻기 전에 422로 거른다 (SQLite는 범위 초과 시 500)
+Id = Annotated[int, Path(ge=1, le=2**63 - 1)]
 
 
 # ---------- 응답 형식 ----------
@@ -36,6 +39,8 @@ class ScenarioBrief(BaseModel):
     pdf_name: str
     tools: list[str]
     plan_confirmed: bool
+    created_at: str
+    run_count: int = 0
 
 
 class RunBrief(BaseModel):
@@ -82,9 +87,9 @@ def extract_pdf_text(data: bytes) -> str:
     return "\n".join((p.extract_text() or "") for p in reader.pages)
 
 
-def _brief(s: Scenario) -> dict:
+def _brief(s: Scenario, run_count: int = 0) -> dict:
     return dict(id=s.id, task=s.task, pdf_name=s.pdf_name, tools=json.loads(s.tools),
-                plan_confirmed=bool(s.plan_confirmed))
+                plan_confirmed=bool(s.plan_confirmed), created_at=s.created_at, run_count=run_count)
 
 
 def task_succeeded(plan: Plan, tool_calls: list[ToolCall], stop_ok: bool) -> bool:
@@ -104,19 +109,22 @@ def list_tools():
     return [ToolInfo(name=n, description=t["description"], risk=t["risk"]) for n, t in TOOLS.items()]
 
 
-@router.post("/scenarios", response_model=ScenarioBrief)
+@router.post("/scenarios", response_model=ScenarioBrief, status_code=201)
 async def create_scenario(task: str = Form(...), tools: str = Form(...),
                           pdf: UploadFile = File(...), user: User = Depends(current_user),
                           db: Session = Depends(get_db)):
     task = task.strip()
     if not task:
         raise HTTPException(400, "요청을 입력하세요.")
+    if len(task) > config.MAX_TASK_CHARS:
+        raise HTTPException(400, f"요청은 {config.MAX_TASK_CHARS}자 이하로 입력하세요.")
     try:
         names = json.loads(tools)
     except json.JSONDecodeError:
         raise HTTPException(400, "도구 목록 형식이 올바르지 않습니다.")
-    if not names or any(t not in TOOLS for t in names):
+    if not isinstance(names, list) or not names or any(not isinstance(t, str) or t not in TOOLS for t in names):
         raise HTTPException(400, "노출 도구를 하나 이상 올바르게 고르세요.")
+    names = list(dict.fromkeys(names))  # 중복 제거 (순서 유지)
     data = await pdf.read(config.MAX_PDF_BYTES + 1)
     if len(data) > config.MAX_PDF_BYTES:
         raise HTTPException(400, "PDF는 10MB 이하만 올릴 수 있습니다.")
@@ -126,6 +134,8 @@ async def create_scenario(task: str = Form(...), tools: str = Form(...),
         text = extract_pdf_text(data)
     except Exception:
         raise HTTPException(400, "PDF를 읽지 못했습니다. 암호가 걸렸거나 손상된 파일인지 확인하세요.")
+    if not text.strip():  # 스캔한 이미지 PDF 등. Agent가 읽을 내용이 없어 실험이 의미 없음
+        raise HTTPException(400, "PDF에서 글자를 읽지 못했습니다. 스캔한 이미지 PDF는 지원하지 않습니다.")
     s = Scenario(user_id=user.id, task=task, tools=json.dumps(names),
                  pdf_name=(pdf.filename or "document.pdf")[:200], pdf_text=text)
     db.add(s)
@@ -135,16 +145,21 @@ async def create_scenario(task: str = Form(...), tools: str = Form(...),
 
 @router.get("/scenarios", response_model=list[ScenarioBrief])
 def list_scenarios(user: User = Depends(current_user), db: Session = Depends(get_db)):
-    rows = db.scalars(select(Scenario).where(Scenario.user_id == user.id)
-                      .order_by(Scenario.id.desc())).all()
-    return [_brief(s) for s in rows]
+    # 목록에는 PDF 본문(LONGTEXT, 수 MB)이 필요 없으므로 읽지 않는다
+    rows = db.scalars(select(Scenario).options(defer(Scenario.pdf_text))
+                      .where(Scenario.user_id == user.id).order_by(Scenario.id.desc())).all()
+    counts = dict(db.execute(select(Run.scenario_id, func.count(Run.id))
+                             .where(Run.scenario_id.in_([s.id for s in rows])).group_by(Run.scenario_id)).all())
+    return [_brief(s, counts.get(s.id, 0)) for s in rows]
 
 
 @router.get("/scenarios/{sid}", response_model=ScenarioDetail)
-def get_scenario(sid: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
+def get_scenario(sid: Id, user: User = Depends(current_user), db: Session = Depends(get_db)):
     s = _own(db, user, sid)
-    runs = db.scalars(select(Run).where(Run.scenario_id == sid).order_by(Run.id.desc())).all()
-    return ScenarioDetail(**_brief(s),
+    # 실행 목록에는 요약 칸만 필요. Trace·결정 기록(LONGTEXT)은 실행 상세에서만 읽는다
+    runs = db.scalars(select(Run).options(load_only(Run.id, Run.condition, Run.status, Run.task_success))
+                      .where(Run.scenario_id == sid).order_by(Run.id.desc())).all()
+    return ScenarioDetail(**_brief(s, len(runs)),
                           plan=Plan.model_validate_json(s.plan) if s.plan else None,
                           pdf_chars=len(s.pdf_text),
                           runs=[RunBrief(id=r.id, condition=r.condition, status=r.status,
@@ -153,7 +168,7 @@ def get_scenario(sid: int, user: User = Depends(current_user), db: Session = Dep
 
 
 @router.post("/scenarios/{sid}/plan", response_model=Plan)
-def make_plan(sid: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
+def make_plan(sid: Id, user: User = Depends(current_user), db: Session = Depends(get_db)):
     s = _own(db, user, sid)
     try:
         plan = generate_plan(s.task, json.loads(s.tools), get_client())   # PDF 미전달
@@ -165,7 +180,7 @@ def make_plan(sid: int, user: User = Depends(current_user), db: Session = Depend
 
 
 @router.put("/scenarios/{sid}/plan", response_model=Plan)
-def confirm_plan(sid: int, body: Plan, user: User = Depends(current_user),
+def confirm_plan(sid: Id, body: Plan, user: User = Depends(current_user),
                  db: Session = Depends(get_db)):
     s = _own(db, user, sid)
     try:
@@ -178,7 +193,7 @@ def confirm_plan(sid: int, body: Plan, user: User = Depends(current_user),
 
 
 @router.post("/scenarios/{sid}/runs", response_model=RunDetail)
-def create_run(sid: int, body: RunRequest, user: User = Depends(current_user),
+def create_run(sid: Id, body: RunRequest, user: User = Depends(current_user),
                db: Session = Depends(get_db)):
     s = _own(db, user, sid)
     if not s.plan or not s.plan_confirmed:
@@ -198,7 +213,7 @@ def create_run(sid: int, body: RunRequest, user: User = Depends(current_user),
 
 
 @router.get("/runs/{rid}", response_model=RunDetail)
-def get_run(rid: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
+def get_run(rid: Id, user: User = Depends(current_user), db: Session = Depends(get_db)):
     run = db.get(Run, rid)
     if run is None:
         raise HTTPException(404, "실행 결과를 찾을 수 없습니다.")
