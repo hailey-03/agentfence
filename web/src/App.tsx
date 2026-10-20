@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { HashRouter, Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { api, getToken, setToken } from "./api";
+import { HashRouter, Link, Navigate, Route, Routes } from "react-router-dom";
+import { api, getToken } from "./api";
 import type { Me } from "./types";
 import Login from "./pages/Login";
 import Scenarios from "./pages/Scenarios";
@@ -9,7 +9,6 @@ import RunResult from "./pages/RunResult";
 import MyPage from "./pages/MyPage";
 
 function Shell({ children }: { children: React.ReactNode }) {
-  const nav = useNavigate();
   const [me, setMe] = useState<Me | null>(null);
   useEffect(() => { if (getToken()) api<Me>("/users/me").then(setMe).catch(() => {}); }, []);
   if (!getToken()) return <Navigate to="/login" replace />;
@@ -18,8 +17,8 @@ function Shell({ children }: { children: React.ReactNode }) {
       <Link to="/" className="brand">AgentFence</Link>
       <nav className="nav"><Link to="/">시나리오</Link></nav>
       <div className="user-menu">
+        {/* 로그아웃은 마이페이지에서만 */}
         <Link to="/me" className="me-link">{me ? `${me.nickname} 님` : "마이페이지"}</Link>
-        <button className="link" onClick={() => { setToken(null); nav("/login"); }}>로그아웃</button>
       </div>
     </header>
     <main className="page">{children}</main>
