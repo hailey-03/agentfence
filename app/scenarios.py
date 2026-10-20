@@ -13,11 +13,12 @@ from sqlalchemy.orm import Session, defer, load_only
 from . import config
 from .auth import current_user
 from .catalog import TOOLS
+from .diff import diff, tool_calls
 from .db import get_db
 from .llm import get_client
 from .models import Run, Scenario, User
 from .planner import PlannerError, generate_plan, validate_plan
-from .schemas import Condition, Decision, Plan, ToolCall, TraceEvent
+from .schemas import Condition, Decision, DiffResult, Plan, ToolCall, TraceEvent
 from .simulator import run as run_sim
 
 logging.getLogger("pypdf").setLevel(logging.ERROR)
@@ -48,6 +49,7 @@ class RunBrief(BaseModel):
     condition: str
     status: str
     task_success: bool | None
+    result: str | None              # MATCH | DIFFERENT (DONE인 Run만)
 
 
 class ScenarioDetail(ScenarioBrief):
@@ -66,6 +68,13 @@ class RunDetail(BaseModel):
     decisions: list[Decision]
     final_output: str | None
     task_success: bool | None
+    diff: DiffResult | None         # 계획 vs 실제 비교 (F7). DONE인 Run만
+    error: str | None = None        # FAILED일 때 오류 메시지
+
+
+class PlanPreviewRequest(BaseModel):
+    task: str
+    tools: list[str]
 
 
 class RunRequest(BaseModel):
@@ -92,6 +101,14 @@ def _brief(s: Scenario, run_count: int = 0) -> dict:
                 plan_confirmed=bool(s.plan_confirmed), created_at=s.created_at, run_count=run_count)
 
 
+def run_diff(run: Run) -> DiffResult | None:
+    """저장된 계획 복사본과 Trace로 계획 vs 실제를 비교한다. 끝까지 실행된 Run만."""
+    if run.status != "DONE":
+        return None
+    trace = [TraceEvent.model_validate(e) for e in json.loads(run.trace or "[]")]
+    return diff(Plan.model_validate_json(run.plan), tool_calls(trace))
+
+
 def task_succeeded(plan: Plan, tool_calls: list[ToolCall], stop_ok: bool) -> bool:
     """MUST 도구가 모두 호출됐고 종료가 정상이면 업무 성공."""
     done = {}
@@ -109,9 +126,26 @@ def list_tools():
     return [ToolInfo(name=n, description=t["description"], risk=t["risk"]) for n, t in TOOLS.items()]
 
 
+@router.post("/plan/preview", response_model=Plan)
+def preview_plan(body: PlanPreviewRequest, user: User = Depends(current_user)):
+    """시나리오를 만들기 전에, 요청과 도구만 보고 어떻게 처리할지 미리 보여 준다 (PDF 없음)."""
+    task = body.task.strip()
+    if not task:
+        raise HTTPException(400, "요청을 입력하세요.")
+    if len(task) > config.MAX_TASK_CHARS:
+        raise HTTPException(400, f"요청은 {config.MAX_TASK_CHARS}자 이하로 입력하세요.")
+    if not body.tools or any(t not in TOOLS for t in body.tools):
+        raise HTTPException(400, "노출 도구를 하나 이상 올바르게 고르세요.")
+    try:
+        return generate_plan(task, list(dict.fromkeys(body.tools)), get_client())   # PDF 미전달
+    except PlannerError as e:
+        raise HTTPException(502, str(e))
+
+
 @router.post("/scenarios", response_model=ScenarioBrief, status_code=201)
 async def create_scenario(task: str = Form(...), tools: str = Form(...),
-                          pdf: UploadFile = File(...), user: User = Depends(current_user),
+                          pdf: UploadFile = File(...), plan: str | None = Form(None),
+                          user: User = Depends(current_user),
                           db: Session = Depends(get_db)):
     task = task.strip()
     if not task:
@@ -136,8 +170,14 @@ async def create_scenario(task: str = Form(...), tools: str = Form(...),
         raise HTTPException(400, "PDF를 읽지 못했습니다. 암호가 걸렸거나 손상된 파일인지 확인하세요.")
     if not text.strip():  # 스캔한 이미지 PDF 등. Agent가 읽을 내용이 없어 실험이 의미 없음
         raise HTTPException(400, "PDF에서 글자를 읽지 못했습니다. 스캔한 이미지 PDF는 지원하지 않습니다.")
+    draft = None
+    if plan:                                   # 미리 보기에서 받은 계획을 초안으로 이어받는다 (확정 전)
+        try:
+            draft = validate_plan(Plan.model_validate_json(plan), names).model_dump_json()
+        except ValueError as e:                # pydantic ValidationError도 ValueError
+            raise HTTPException(400, f"미리 본 계획이 올바르지 않습니다: {e}")
     s = Scenario(user_id=user.id, task=task, tools=json.dumps(names),
-                 pdf_name=(pdf.filename or "document.pdf")[:200], pdf_text=text)
+                 pdf_name=(pdf.filename or "document.pdf")[:200], pdf_text=text, plan=draft)
     db.add(s)
     db.commit()
     return _brief(s)
@@ -156,14 +196,16 @@ def list_scenarios(user: User = Depends(current_user), db: Session = Depends(get
 @router.get("/scenarios/{sid}", response_model=ScenarioDetail)
 def get_scenario(sid: Id, user: User = Depends(current_user), db: Session = Depends(get_db)):
     s = _own(db, user, sid)
-    # 실행 목록에는 요약 칸만 필요. Trace·결정 기록(LONGTEXT)은 실행 상세에서만 읽는다
-    runs = db.scalars(select(Run).options(load_only(Run.id, Run.condition, Run.status, Run.task_success))
+    # 실행 목록에는 요약 칸 + F7 비교(run_diff)에 쓰는 계획·Trace만 읽는다. 결정 기록·최종 출력은 실행 상세에서만
+    runs = db.scalars(select(Run).options(load_only(Run.id, Run.condition, Run.status, Run.task_success,
+                                                    Run.plan, Run.trace))
                       .where(Run.scenario_id == sid).order_by(Run.id.desc())).all()
     return ScenarioDetail(**_brief(s, len(runs)),
                           plan=Plan.model_validate_json(s.plan) if s.plan else None,
                           pdf_chars=len(s.pdf_text),
                           runs=[RunBrief(id=r.id, condition=r.condition, status=r.status,
-                                         task_success=bool(r.task_success) if r.task_success is not None else None)
+                                         task_success=bool(r.task_success) if r.task_success is not None else None,
+                                         result=(d.result if (d := run_diff(r)) else None))
                                 for r in runs])
 
 
@@ -228,4 +270,5 @@ def _run_detail(run: Run) -> RunDetail:
         trace=[TraceEvent.model_validate(e) for e in json.loads(run.trace or "[]")],
         decisions=[Decision.model_validate(d) for d in json.loads(run.decisions or "[]")],
         final_output=run.final_output,
-        task_success=bool(run.task_success) if run.task_success is not None else None)
+        task_success=bool(run.task_success) if run.task_success is not None else None,
+        diff=run_diff(run), error=run.error)
