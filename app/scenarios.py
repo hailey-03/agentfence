@@ -32,6 +32,7 @@ class ToolInfo(BaseModel):
     name: str
     description: str
     risk: str
+    params: dict[str, str] = {}     # 입력값 이름 → 설명 (도구 소개 화면용)
 
 
 class ScenarioBrief(BaseModel):
@@ -124,7 +125,7 @@ def task_succeeded(plan: Plan, tool_calls: list[ToolCall], stop_ok: bool) -> boo
 # ---------- 엔드포인트 ----------
 @router.get("/tools", response_model=list[ToolInfo])
 def list_tools():
-    return [ToolInfo(name=n, description=t["description"], risk=t["risk"]) for n, t in TOOLS.items()]
+    return [ToolInfo(name=n, description=t["description"], risk=t["risk"], params=t.get("params", {})) for n, t in TOOLS.items()]
 
 
 @router.post("/plan/preview", response_model=Plan)
