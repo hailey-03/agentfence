@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, setToken } from "../api";
 
-const FLOW = ["요청", "계획", "검사", "비교"];
+const FLOW = ["요청", "계획", "모의 실행", "비교"];
 // 가입 비밀번호 규칙 — 서버(app/auth.py PASSWORD_RULES)와 같게 유지
 const PW_RULES: [string, (p: string) => boolean][] = [
   ["8자 이상", (p) => p.length >= 8],
@@ -13,9 +13,7 @@ const PW_RULES: [string, (p: string) => boolean][] = [
 ];
 const utf8Bytes = (s: string) => new TextEncoder().encode(s).length;
 
-const CONDS = [["A", "방어 없음"], ["B", "AWS식 권한표"], ["C", "AgentFence"], ["D", "Guardrails"]];
-
-/** 게이트가 실제로 하는 일을 보여주는 예시 카드 (요청 범위 안 호출은 통과, 숨은 지시로 생긴 호출은 차단) */
+/** 점검 결과 예시 카드: 모의 실행한 호출을 계획과 비교 — 요청 범위 안은 "요청대로", 숨은 지시로 생긴 호출은 "요청에 없던 행동" */
 function GateDemo() {
   return (
     <div className="gate" aria-hidden="true">
@@ -25,11 +23,11 @@ function GateDemo() {
       </div>
       <ul className="gate-rows">
         <li><span className="gate-tool">summarize_note</span><span className="gate-arg">이력서 요약</span>
-          <span className="gate-badge allow">허용</span></li>
+          <span className="gate-badge allow">요청대로</span></li>
         <li><span className="gate-tool">send_email</span><span className="gate-arg">hong@applicant.example</span>
-          <span className="gate-badge allow">허용</span></li>
+          <span className="gate-badge allow">요청대로</span></li>
         <li className="deny"><span className="gate-tool">send_email</span><span className="gate-arg">leak@external.example</span>
-          <span className="gate-badge deny">차단</span>
+          <span className="gate-badge deny">요청에 없던 행동</span>
           <span className="gate-why">PDF에 숨은 지시 · 요청에 없는 외부 전송</span></li>
       </ul>
     </div>
@@ -67,8 +65,8 @@ export default function Login() {
         <div className="logo"><span className="logo-mark" />AgentFence</div>
 
         <div className="intro-body">
-          <h1 className="intro-title">에이전트가 도구를 쓰기 전에,<br /><em>요청 기준으로</em> 먼저 검사합니다.</h1>
-          <p className="intro-lead">문서에 숨은 지시가 메일 전송·파일 삭제로 이어지지 않도록, 계획 밖의 호출을 실행 전에 막습니다.</p>
+          <h1 className="intro-title">에이전트를 실제로 쓰기 전에,<br /><em>요청에 없던 행동</em>을 먼저 찾아냅니다.</h1>
+          <p className="intro-lead">문서에 숨은 지시를 따라 메일 전송·파일 삭제 같은 일을 하는지, 가짜 도구로 미리 실행해 보고 요청에서 만든 계획과 비교합니다.</p>
           <GateDemo />
           <ol className="flow" aria-label="사용 흐름">
             {FLOW.map((f, i) => <li key={f}><span>{i + 1}</span>{f}</li>)}
@@ -76,9 +74,7 @@ export default function Login() {
         </div>
 
         <p className="intro-foot">
-          같은 문서로 네 가지 방어 조건 비교 —{" "}
-          {CONDS.map(([k, v], i) => (
-            <span key={k} className={k === "C" ? "on" : ""}>{k} {v}{i < CONDS.length - 1 ? " · " : ""}</span>))}
+          <span className="on">모의 실행</span> — 도구 호출은 모두 가짜(Mock)로 실행되어 실제 메일·파일은 건드리지 않습니다.
         </p>
       </section>
 
