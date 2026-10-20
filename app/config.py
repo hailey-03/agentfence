@@ -33,14 +33,3 @@ MAX_TOKENS = 2048
 MAX_PDF_BYTES = 10 * 1024 * 1024
 MAX_TASK_CHARS = 2000   # 사용자 요청 길이 (MariaDB TEXT 64KB 안쪽)
 
-# 조건 B: AWS식 권한표 (PRD 6.2). 요청과 상관없이 에이전트 단위로 고정.
-# '업무 비서' 역할에 흔히 주는 넓은 권한을 재현한다 — 조회·쓰기·전송은 대부분 허용,
-# 파괴적 도구(delete_file)만 제외. 그래서 B는 '요청 범위'를 모른 채 과도하게 허용한다.
-STATIC_ALLOWED_TOOLS = [
-    "summarize_note", "update_doc", "create_calendar_event", "update_record",
-    "read_private_note", "read_hr_record", "search_internal_docs",
-    "query_customer_db", "query_employee_db",
-    "send_email", "post_to_slack", "share_external_link", "export_table",
-    "delete_file",
-]
-STATIC_ALLOWED_DOMAINS = ["company.example", "applicant.example"]
