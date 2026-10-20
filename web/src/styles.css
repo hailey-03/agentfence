@@ -68,13 +68,13 @@ button.link{border:0;background:none;color:var(--sub);padding:4px}
 
 .auth-side{display:grid;place-items:center;padding:32px clamp(20px,4vw,56px);background:var(--bg)}
 .auth-card{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--rule);border-radius:16px;
-  padding:36px 36px 28px;box-shadow:0 12px 32px -16px rgba(16,24,40,.18)}
+  padding:30px 36px 24px;box-shadow:0 12px 32px -16px rgba(16,24,40,.18)}
 .auth-logo{display:none;margin-bottom:24px;color:var(--ink)} /* 휴대폰에서만: 소개 패널이 아래로 내려가므로 */
 .auth-heading{font-size:1.55rem;font-weight:700;margin:0 0 6px;letter-spacing:-.01em}
-.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin:24px 0 20px;background:var(--bg);border-radius:10px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin:20px 0 16px;background:var(--bg);border-radius:10px}
 .seg button{border:0;background:none;color:var(--sub);padding:8px;border-radius:7px}
 .seg button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(16,24,40,.12)}
-.auth-form{display:grid;gap:16px}
+.auth-form{display:grid;gap:14px}
 .auth-form input{padding:11px 13px;border-radius:8px;transition:border-color .15s,box-shadow .15s}
 .auth-form input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,91,215,.15)}
 .auth-form input::placeholder{color:#a3acb9}
