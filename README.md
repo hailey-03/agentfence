@@ -33,7 +33,7 @@ app/
   planner.py   요청 + 도구 정의 → 계획 초안 (PDF는 받지 않음), validate_plan()
   simulator.py   AI에게 요청+PDF를 주고 도구 호출을 모두 Mock으로 실행
   scenarios.py   시나리오·계획·실행·Run API
-scripts/try_it.py  1~5번 모듈 체험 스크립트
+scripts/try_it.py  계획 만들기 → 시뮬레이션 실행 체험 스크립트
 eval/make_docs.py  시연용 PDF 생성 (PyMuPDF 필요)
 web/           React 화면 S1~S4 (로그인·시나리오·계획·결과)
   main.py      앱 진입점, /api/health, React 빌드 서빙
@@ -49,7 +49,7 @@ python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python -m pytest -q                # 33 passed 가 나오면 정상
-python -m scripts.try_it           # 계획 만들기 · 게이트 B vs C · Guardrails 체험
+python -m scripts.try_it           # 계획 만들기 → 시뮬레이션 실행 → 계획 vs 실제 호출 수
 uvicorn app.main:app --reload --port 8000
 ```
 
