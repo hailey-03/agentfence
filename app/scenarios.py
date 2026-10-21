@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Path, UploadFile
 from pypdf import PdfReader
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, defer, load_only
 
 from . import config
@@ -191,6 +191,16 @@ def get_scenario(sid: Id, user: User = Depends(current_user), db: Session = Depe
                                          status=r.status,
                                          result=(d.result if (d := run_diff(r)) else None))
                                 for r in runs])
+
+
+@router.delete("/scenarios/{sid}")
+def delete_scenario(sid: Id, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """시나리오와 그 실행 기록을 삭제한다 (본인 것만)."""
+    s = _own(db, user, sid)
+    db.execute(delete(Run).where(Run.scenario_id == s.id))   # 자식 Run 먼저 지운다
+    db.delete(s)
+    db.commit()
+    return {"ok": True}
 
 
 @router.post("/scenarios/{sid}/plan", response_model=Plan)

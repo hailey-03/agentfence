@@ -94,6 +94,22 @@ def test_compare_runs_every_model():
     assert c.get(f"/api/scenarios/{sid}", headers=h).json()["run_count"] == len(items)
 
 
+def test_delete_scenario_removes_it_and_runs():
+    h = auth("del@test.dev")
+    sid = make_scenario(h)
+    plan = c.post(f"/api/scenarios/{sid}/plan", headers=h).json()
+    c.put(f"/api/scenarios/{sid}/plan", headers=h, json=plan)
+    c.post(f"/api/scenarios/{sid}/runs", headers=h, json={})
+    assert c.delete(f"/api/scenarios/{sid}", headers=h).json() == {"ok": True}
+    assert c.get(f"/api/scenarios/{sid}", headers=h).status_code == 404
+    assert all(s["id"] != sid for s in c.get("/api/scenarios", headers=h).json())
+
+
+def test_cannot_delete_others_scenario():
+    sid = make_scenario(auth("owner@test.dev"))
+    assert c.delete(f"/api/scenarios/{sid}", headers=auth("intruder@test.dev")).status_code == 404
+
+
 def test_plan_confirm_rules():                                        # F5
     h = auth("plan@test.dev")
     sid = make_scenario(h)
