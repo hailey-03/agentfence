@@ -35,7 +35,7 @@ sequenceDiagram
         SD->>SC: GET /api/tools (실패해도 무시)
     end
     SC->>DB: 시나리오 조회 - 없거나 남의 것이면 404 "시나리오를 찾을 수 없습니다."
-    SC->>DB: runs 조회 - id, condition, status, task_success, plan, trace 칸만, 최신순
+    SC->>DB: runs 조회 - id, condition, status, plan, trace 칸만, 최신순
     loop Run마다
         SC->>DF: run_diff(run) - DONE인 Run만 계획 사본과 trace로 비교 (07 문서)
         DF-->>SC: MATCH 또는 DIFFERENT (FAILED는 null)
@@ -61,7 +61,7 @@ sequenceDiagram
     {"tool": "update_doc", "rule": "MAY", "maxCalls": 1, "reason": "요청이 저장·기록을 포함함"},
     "... 12개 생략 ..."], "allowSensitiveToExternal": false},
   "pdf_chars": 96,                                      // PDF 본문은 보내지 않고 글자 수만
-  "runs": [{"id": 1, "condition": "C", "status": "DONE", "task_success": true, "result": "DIFFERENT"}]
+  "runs": [{"id": 1, "condition": "C", "status": "DONE", "result": "DIFFERENT"}]
 }
 ```
 

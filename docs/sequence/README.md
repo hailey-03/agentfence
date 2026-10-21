@@ -205,10 +205,10 @@ JSON 값은 TEXT 칸에 문자열로 저장한다.
 | --- | --- | --- |
 | `users` | `id`, `email`(소문자, 고유), `password_hash`(bcrypt), `nickname`, `created_at` | 가입할 때 생성 |
 | `scenarios` | `user_id`, `task`(요청 문장), `tools`(노출 도구 JSON 배열), `pdf_name`, `pdf_text`(추출 텍스트), `plan`, `plan_draft`, `plan_confirmed`(0/1), `created_at` | 시나리오 만들 때 생성, 계획 만들기·확정 때 갱신 |
-| `runs` | `scenario_id`, `condition`, `status`(DONE/FAILED), `plan`(실행 시점 계획 사본), `trace`(JSON), `final_output`, `task_success`, `error`, `created_at` | 실행 1번에 1행. 만든 뒤 바뀌지 않는다 |
+| `runs` | `scenario_id`, `condition`, `status`(DONE/FAILED), `plan`(실행 시점 계획 사본), `trace`(JSON), `final_output`, `error`, `created_at` | 실행 1번에 1행. 만든 뒤 바뀌지 않는다 |
 | `eval_reports` | `settings`, `summary` | 예전 조건 비교 실험용. 지금 쓰는 코드 없음 |
 
-`runs`의 `decisions`, `attack_success`, `guardrail_result`, `eval_report_id`, `doc_id` 칸은 예전 정책 게이트·실험의 흔적이다. 새 Run에서는 항상 비어 있다.
+`runs`의 `decisions`, `attack_success`, `guardrail_result`, `eval_report_id`, `doc_id` 칸은 예전 정책 게이트·실험의 흔적이다. 새 Run에서는 항상 비어 있다. 예전에 만든 DB에는 지금 모델에 없는 `task_success` 칸(옛 업무 성공 지표)도 남아 있을 수 있다. NULL을 허용하므로 그대로 둬도 되고, 지우려면 `ALTER TABLE runs DROP COLUMN task_success`를 실행한다.
 
 모듈 사이에 주고받는 주요 형식 (`app/schemas.py`):
 

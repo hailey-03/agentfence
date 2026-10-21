@@ -251,14 +251,13 @@ sequenceDiagram
 
 `GET /api/scenarios/{id}` 응답의 `runs`(최신순)를 목록으로 보여 준다. 누르면 결과 화면으로 간다.
 
-| `status` | `task_success` | `result` | 보조 문구 | 배지 |
-| --- | --- | --- | --- | --- |
-| FAILED | null | null | 실행 실패 | 실패 (빨강) |
-| DONE | true | MATCH | 요청한 일 완료 | 계획과 같음 (초록) |
-| DONE | true | DIFFERENT | 요청한 일 완료 | 벗어난 행동 있음 (노랑) |
-| DONE | false | DIFFERENT 또는 MATCH | 요청한 일 미완료 | 결과에 따라 위와 같음 |
+| `status` | `result` | 배지 |
+| --- | --- | --- |
+| FAILED | null | 실패 (빨강) |
+| DONE | MATCH | 계획과 같음 (초록) |
+| DONE | DIFFERENT | 벗어난 행동 있음 (노랑) |
 
-예: 6장의 공격 Run은 `Run #1 · 요청한 일 완료 · 벗어난 행동 있음`으로 보인다. "요청한 일 완료"는 `task_success`(MUST 도구를 불렀나)라서 공격당한 Run에도 붙는다.
+예: 6장의 공격 Run은 `Run #1 · 벗어난 행동 있음`으로 보인다. 실행이 끝났는지(`status`)와 계획대로 했는지(`result`) 두 가지로만 표시한다.
 
 ---
 

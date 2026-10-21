@@ -18,7 +18,7 @@ from .db import get_db
 from .llm import get_client
 from .models import Run, Scenario, User
 from .planner import PlannerError, generate_plan, validate_plan
-from .schemas import Condition, Decision, DiffResult, Plan, ToolCall, TraceEvent
+from .schemas import Condition, Decision, DiffResult, Plan, TraceEvent
 from .simulator import run as run_sim
 
 logging.getLogger("pypdf").setLevel(logging.ERROR)
@@ -49,7 +49,6 @@ class RunBrief(BaseModel):
     id: int
     condition: str
     status: str
-    task_success: bool | None
     result: str | None              # MATCH | DIFFERENT (DONE인 Run만)
 
 
@@ -69,7 +68,6 @@ class RunDetail(BaseModel):
     trace: list[TraceEvent]
     decisions: list[Decision]
     final_output: str | None
-    task_success: bool | None
     diff: DiffResult | None         # 계획 vs 실제 비교 (F7). DONE인 Run만
     error: str | None = None        # FAILED일 때 오류 메시지
 
@@ -104,17 +102,6 @@ def run_diff(run: Run) -> DiffResult | None:
         return None
     trace = [TraceEvent.model_validate(e) for e in json.loads(run.trace or "[]")]
     return diff(Plan.model_validate_json(run.plan), tool_calls(trace))
-
-
-def task_succeeded(plan: Plan, tool_calls: list[ToolCall], stop_ok: bool) -> bool:
-    """MUST 도구가 모두 호출됐고 종료가 정상이면 업무 성공."""
-    done = {}
-    for c in tool_calls:
-        done[c.tool] = done.get(c.tool, 0) + 1
-    for r in plan.tools:
-        if r.rule == "MUST" and done.get(r.tool, 0) < 1:
-            return False
-    return stop_ok
 
 
 # ---------- 엔드포인트 ----------
@@ -173,15 +160,13 @@ def list_scenarios(user: User = Depends(current_user), db: Session = Depends(get
 def get_scenario(sid: Id, user: User = Depends(current_user), db: Session = Depends(get_db)):
     s = _own(db, user, sid)
     # 실행 목록에는 요약 칸 + F7 비교(run_diff)에 쓰는 계획·Trace만 읽는다. 결정 기록·최종 출력은 실행 상세에서만
-    runs = db.scalars(select(Run).options(load_only(Run.id, Run.condition, Run.status, Run.task_success,
-                                                    Run.plan, Run.trace))
+    runs = db.scalars(select(Run).options(load_only(Run.id, Run.condition, Run.status, Run.plan, Run.trace))
                       .where(Run.scenario_id == sid).order_by(Run.id.desc())).all()
     return ScenarioDetail(**_brief(s, len(runs)),
                           plan=Plan.model_validate_json(s.plan) if s.plan else None,
                           plan_draft=Plan.model_validate_json(s.plan_draft) if s.plan_draft else None,
                           pdf_chars=len(s.pdf_text),
                           runs=[RunBrief(id=r.id, condition=r.condition, status=r.status,
-                                         task_success=bool(r.task_success) if r.task_success is not None else None,
                                          result=(d.result if (d := run_diff(r)) else None))
                                 for r in runs])
 
@@ -218,13 +203,11 @@ def create_run(sid: Id, body: RunRequest, user: User = Depends(current_user),
     s = _own(db, user, sid)
     if not s.plan or not s.plan_confirmed:
         raise HTTPException(400, "계획을 확정한 뒤 실행할 수 있습니다.")
-    plan = Plan.model_validate_json(s.plan)
     run = Run(scenario_id=s.id, condition=body.condition, status="DONE", plan=s.plan)
     try:
         out = run_sim(s.task, s.pdf_text, json.loads(s.tools), get_client())
         run.trace = json.dumps([e.model_dump() for e in out["trace"]], ensure_ascii=False)
         run.final_output = out["final_output"]
-        run.task_success = int(task_succeeded(plan, out["tool_calls"], out["final_output"] is not None))
     except Exception as e:
         run.status, run.error = "FAILED", str(e)
     db.add(run)
@@ -248,5 +231,4 @@ def _run_detail(run: Run) -> RunDetail:
         trace=[TraceEvent.model_validate(e) for e in json.loads(run.trace or "[]")],
         decisions=[Decision.model_validate(d) for d in json.loads(run.decisions or "[]")],
         final_output=run.final_output,
-        task_success=bool(run.task_success) if run.task_success is not None else None,
         diff=run_diff(run), error=run.error)
