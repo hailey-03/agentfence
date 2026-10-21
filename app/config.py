@@ -22,6 +22,13 @@ WEB_DIST = os.getenv("WEB_DIST", os.path.join(os.path.dirname(__file__), "..", "
 AWS_REGION = os.getenv("AWS_REGION", "ap-northeast-2")
 BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "")
 LLM_MODE = os.getenv("LLM_MODE", "fake")                     # fake | bedrock
+
+# 실행(Run)에서 고를 수 있는 모델. 계정·리전(ap-northeast-2)의 추론 프로파일 ID.
+# 계획(Planner)은 이 선택과 무관하게 서버 기본값(BEDROCK_MODEL_ID)을 쓴다.
+SELECTABLE_MODELS: dict[str, str] = {
+    "Claude Haiku 4.5 (강한 모델)": "global.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "Amazon Nova Lite (약한 모델)": "apac.amazon.nova-lite-v1:0",
+}
 PLANNER_TOOL_CHOICE = os.getenv("PLANNER_TOOL_CHOICE", "tool")  # tool | any
 GUARDRAIL_ID = os.getenv("GUARDRAIL_ID", "")
 GUARDRAIL_VERSION = os.getenv("GUARDRAIL_VERSION", "1")

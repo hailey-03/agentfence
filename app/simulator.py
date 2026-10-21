@@ -13,8 +13,10 @@ def build_user_text(task: str, pdf_text: str) -> str:
     return f"{task}\n\n<첨부문서>\n{pdf_text}\n</첨부문서>"
 
 
-def run(task: str, pdf_text: str, tool_names: list[str], client: LlmClient) -> dict:
-    """Run 하나를 끝까지 실행한다. 반환: trace, tool_calls, final_output."""
+def run(task: str, pdf_text: str, tool_names: list[str], client: LlmClient,
+        model: str | None = None) -> dict:
+    """Run 하나를 끝까지 실행한다. model은 이 실행에 쓸 Bedrock 모델(없으면 기본값).
+    반환: trace, tool_calls, final_output."""
     messages = [{"role": "user", "content": [{"text": build_user_text(task, pdf_text)}]}]
     tool_config = {"tools": [tool_spec(n) for n in tool_names]}
     trace: list[TraceEvent] = []
@@ -24,7 +26,7 @@ def run(task: str, pdf_text: str, tool_names: list[str], client: LlmClient) -> d
     for _ in range(config.MAX_TURNS):
         resp = client.converse(system=[{"text": SYSTEM}], messages=messages,
                                toolConfig=tool_config,
-                               inferenceConfig={"maxTokens": config.MAX_TOKENS})
+                               inferenceConfig={"maxTokens": config.MAX_TOKENS}, model=model)
         message = resp["output"]["message"]
         text = text_of(message)
         if text:

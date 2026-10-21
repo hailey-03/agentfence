@@ -18,6 +18,8 @@ export default function ScenarioDetail() {
   const [asking, setAsking] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [guideOpen, setGuideOpen] = useState(false);               // 안내 박스 펼침 (기본 접힘)   // 위험 등급별 금지 항목 펼침
+  const [models, setModels] = useState<{ id: string; label: string }[]>([]);   // 실행에 고를 모델
+  const [model, setModel] = useState("");                          // 선택한 실행 모델 ID ("" = 서버 기본)
 
   useLeaveGuard(dirty, "확정하지 않은 계획 수정이 있어요. 페이지를 떠나면 고친 내용이 사라집니다. 떠날까요?");
 
@@ -25,6 +27,8 @@ export default function ScenarioDetail() {
     .catch((e) => setError(e.message));
   useEffect(() => { load(); }, [id]);
   useEffect(() => { api<ToolInfo[]>("/tools").then(setTools).catch(() => {}); }, []);
+  useEffect(() => { api<{ models: { id: string; label: string }[]; default: string }>("/models")
+    .then((d) => { setModels(d.models); setModel(d.default || d.models[0]?.id || ""); }).catch(() => {}); }, []);
 
   async function act<T>(k: string, fn: () => Promise<T>) {
     setError(""); setBusy(k);
@@ -49,11 +53,11 @@ export default function ScenarioDetail() {
   const confirmAndRun = () => act("confirm", async () => {
     await api<Plan>(`/scenarios/${id}/plan`, { method: "PUT", body: JSON.stringify(plan) });
     await load();                     // 확정 반영 (실행이 실패해도 화면이 확정 상태와 맞도록)
-    const r = await api<RunDetail>(`/scenarios/${id}/runs`, { method: "POST", body: JSON.stringify({}) });
+    const r = await api<RunDetail>(`/scenarios/${id}/runs`, { method: "POST", body: JSON.stringify({ model }) });
     nav(`/runs/${r.id}`);
   });
   const run = () => act("run", async () => {
-    const r = await api<RunDetail>(`/scenarios/${id}/runs`, { method: "POST", body: JSON.stringify({}) });
+    const r = await api<RunDetail>(`/scenarios/${id}/runs`, { method: "POST", body: JSON.stringify({ model }) });
     nav(`/runs/${r.id}`);
   });
 
@@ -159,6 +163,13 @@ export default function ScenarioDetail() {
         <h2>실행</h2>
         <p className="muted">요청과 첨부 문서를 AI에게 주고 가짜 도구로 실행한 뒤, 확정한 계획과 비교해 보여 드려요.
           실제로 메일이 나가거나 데이터가 바뀌지는 않아요.</p>
+        {models.length > 0 && <label className="model-pick">
+          <span>실행할 모델</span>
+          <select value={model} onChange={(e) => setModel(e.target.value)} disabled={!!busy}>
+            {models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+          </select>
+          <span className="hint">계획은 서버 기본 모델로 만들고, 이 모델로 실행해 비교해요.</span>
+        </label>}
         <div className="actions">
           <button className="primary" onClick={run} disabled={!!busy || !confirmed}>
             {busy === "run" ? "실행 중" : "실행"}</button>

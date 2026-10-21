@@ -75,8 +75,9 @@ class BedrockClient:
                                               read_timeout=60))
 
     def converse(self, **kwargs: Any) -> dict:
+        model = kwargs.pop("model", None) or config.BEDROCK_MODEL_ID   # 실행이 고른 모델, 없으면 기본값
         try:
-            return self._rt.converse(modelId=config.BEDROCK_MODEL_ID, **kwargs)
+            return self._rt.converse(modelId=model, **kwargs)
         except Exception as e:
             raise LlmError(f"Bedrock 호출 실패: {e}") from e
 
@@ -100,6 +101,7 @@ class BedrockClient:
 # ---------------- 가짜 LLM ----------------
 class FakeClient:
     def converse(self, **kwargs: Any) -> dict:
+        kwargs.pop("model", None)   # 가짜 LLM은 모델을 쓰지 않는다
         tools = [t["toolSpec"]["name"] for t in kwargs.get("toolConfig", {}).get("tools", [])]
         if "submit_plan" in tools:
             return self._plan(kwargs)
