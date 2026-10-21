@@ -48,7 +48,7 @@ class Run(Base):
     __tablename__ = "runs"
     id: Mapped[int] = mapped_column(PK, primary_key=True, autoincrement=True)
     scenario_id: Mapped[int] = mapped_column(ForeignKey("scenarios.id"), nullable=False)
-    condition: Mapped[str] = mapped_column(String(1), nullable=False)   # A | B | C | D
+    model: Mapped[str | None] = mapped_column(String(100), nullable=True)   # 이 실행에 쓴 Bedrock 모델 ID
     status: Mapped[str] = mapped_column(String(32), nullable=False)     # RunStatus
     plan: Mapped[str] = mapped_column(Text, nullable=False)             # 실행 시점 계획 복사본
     trace: Mapped[str | None] = mapped_column(BigText, nullable=True)      # TraceEvent JSON 배열

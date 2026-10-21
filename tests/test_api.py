@@ -67,6 +67,20 @@ def test_run_reports_plan_diff():                                     # F7
     assert brief["result"] == "DIFFERENT"
 
 
+def test_run_records_selected_model():
+    h = auth("model@test.dev")
+    sid = make_scenario(h)
+    plan = c.post(f"/api/scenarios/{sid}/plan", headers=h).json()
+    c.put(f"/api/scenarios/{sid}/plan", headers=h, json=plan)
+    mid = "apac.amazon.nova-lite-v1:0"
+    run = c.post(f"/api/scenarios/{sid}/runs", headers=h, json={"model": mid}).json()
+    assert run["model"] == mid and "Nova Lite" in (run["model_label"] or "")
+    brief = c.get(f"/api/scenarios/{sid}", headers=h).json()["runs"][0]
+    assert brief["model"] == mid and "Nova Lite" in (brief["model_label"] or "")
+    # 허용 목록에 없는 모델은 거부
+    assert c.post(f"/api/scenarios/{sid}/runs", headers=h, json={"model": "bogus"}).status_code == 400
+
+
 def test_plan_confirm_rules():                                        # F5
     h = auth("plan@test.dev")
     sid = make_scenario(h)
@@ -154,8 +168,8 @@ def test_list_and_detail_show_created_at_and_run_count():
     second = _post(h, task="두 번째").json()["id"]
     plan = c.post(f"/api/scenarios/{second}/plan", headers=h).json()
     c.put(f"/api/scenarios/{second}/plan", headers=h, json=plan)
-    for cond in ["A", "C"]:
-        c.post(f"/api/scenarios/{second}/runs", headers=h, json={"condition": cond})
+    for _ in range(2):
+        c.post(f"/api/scenarios/{second}/runs", headers=h, json={})
 
     rows = c.get("/api/scenarios", headers=h).json()
     assert [r["id"] for r in rows] == [second, first]                   # 최신순
@@ -163,7 +177,7 @@ def test_list_and_detail_show_created_at_and_run_count():
     assert all(r["created_at"] for r in rows)
 
     d = c.get(f"/api/scenarios/{second}", headers=h).json()
-    assert d["run_count"] == 2 and [r["condition"] for r in d["runs"]] == ["C", "A"]
+    assert d["run_count"] == 2 and len(d["runs"]) == 2
     assert d["plan_confirmed"] is True and d["pdf_chars"] > 0
 
 

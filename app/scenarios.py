@@ -18,7 +18,7 @@ from .db import get_db
 from .llm import get_client
 from .models import Run, Scenario, User
 from .planner import PlannerError, generate_plan, validate_plan
-from .schemas import Condition, Decision, DiffResult, Plan, TraceEvent
+from .schemas import Decision, DiffResult, Plan, TraceEvent
 from .simulator import run as run_sim
 
 logging.getLogger("pypdf").setLevel(logging.ERROR)
@@ -46,8 +46,10 @@ class ScenarioBrief(BaseModel):
 
 
 class RunBrief(BaseModel):
+    model_config = {"protected_namespaces": ()}   # 'model' 필드명 허용
     id: int
-    condition: str
+    model: str | None = None        # 이 실행에 쓴 모델 ID
+    model_label: str | None = None  # 사람이 읽는 이름 (예: Amazon Nova Lite)
     status: str
     result: str | None              # MATCH | DIFFERENT (DONE인 Run만)
 
@@ -60,9 +62,11 @@ class ScenarioDetail(ScenarioBrief):
 
 
 class RunDetail(BaseModel):
+    model_config = {"protected_namespaces": ()}   # 'model' 필드명 허용
     id: int
     scenario_id: int
-    condition: str
+    model: str | None = None
+    model_label: str | None = None
     status: str
     plan: Plan
     trace: list[TraceEvent]
@@ -73,8 +77,15 @@ class RunDetail(BaseModel):
 
 
 class RunRequest(BaseModel):
-    condition: Condition = "C"
+    model_config = {"protected_namespaces": ()}   # 'model' 필드명 허용
     model: str | None = None            # 실행에 쓸 Bedrock 모델 ID. None이면 서버 기본값.
+
+
+def _model_label(mid: str | None) -> str | None:
+    """모델 ID를 사람이 읽는 이름으로. 목록에 없으면 ID 그대로."""
+    if not mid:
+        return None
+    return next((k for k, v in config.SELECTABLE_MODELS.items() if v == mid), mid)
 
 
 # ---------- 공통 ----------
@@ -161,13 +172,14 @@ def list_scenarios(user: User = Depends(current_user), db: Session = Depends(get
 def get_scenario(sid: Id, user: User = Depends(current_user), db: Session = Depends(get_db)):
     s = _own(db, user, sid)
     # 실행 목록에는 요약 칸 + F7 비교(run_diff)에 쓰는 계획·Trace만 읽는다. 결정 기록·최종 출력은 실행 상세에서만
-    runs = db.scalars(select(Run).options(load_only(Run.id, Run.condition, Run.status, Run.plan, Run.trace))
+    runs = db.scalars(select(Run).options(load_only(Run.id, Run.model, Run.status, Run.plan, Run.trace))
                       .where(Run.scenario_id == sid).order_by(Run.id.desc())).all()
     return ScenarioDetail(**_brief(s, len(runs)),
                           plan=Plan.model_validate_json(s.plan) if s.plan else None,
                           plan_draft=Plan.model_validate_json(s.plan_draft) if s.plan_draft else None,
                           pdf_chars=len(s.pdf_text),
-                          runs=[RunBrief(id=r.id, condition=r.condition, status=r.status,
+                          runs=[RunBrief(id=r.id, model=r.model, model_label=_model_label(r.model),
+                                         status=r.status,
                                          result=(d.result if (d := run_diff(r)) else None))
                                 for r in runs])
 
@@ -206,7 +218,8 @@ def create_run(sid: Id, body: RunRequest, user: User = Depends(current_user),
         raise HTTPException(400, "계획을 확정한 뒤 실행할 수 있습니다.")
     if body.model and body.model not in config.SELECTABLE_MODELS.values():
         raise HTTPException(400, "허용되지 않은 모델입니다.")
-    run = Run(scenario_id=s.id, condition=body.condition, status="DONE", plan=s.plan)
+    used_model = body.model or config.BEDROCK_MODEL_ID    # 실제로 실행에 쓰는 모델을 기록
+    run = Run(scenario_id=s.id, model=used_model, status="DONE", plan=s.plan)
     try:
         # model은 이 실행에만 적용(계획은 서버 기본 모델). None이면 서버 기본값.
         out = run_sim(s.task, s.pdf_text, json.loads(s.tools), get_client(), model=body.model)
@@ -230,7 +243,8 @@ def get_run(rid: Id, user: User = Depends(current_user), db: Session = Depends(g
 
 def _run_detail(run: Run) -> RunDetail:
     return RunDetail(
-        id=run.id, scenario_id=run.scenario_id, condition=run.condition, status=run.status,
+        id=run.id, scenario_id=run.scenario_id, model=run.model, model_label=_model_label(run.model),
+        status=run.status,
         plan=Plan.model_validate_json(run.plan),
         trace=[TraceEvent.model_validate(e) for e in json.loads(run.trace or "[]")],
         decisions=[Decision.model_validate(d) for d in json.loads(run.decisions or "[]")],

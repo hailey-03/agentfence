@@ -54,7 +54,7 @@ export default function RunResult() {
     if (!r) return;
     setError(""); setRerunning(true);
     try {
-      const n = await api<RunDetail>(`/scenarios/${r.scenario_id}/runs`, { method: "POST", body: JSON.stringify({}) });
+      const n = await api<RunDetail>(`/scenarios/${r.scenario_id}/runs`, { method: "POST", body: JSON.stringify({ model: r.model }) });
       nav(`/runs/${n.id}`);
     } catch (e) { setError((e as Error).message); } finally { setRerunning(false); }
   }
@@ -94,7 +94,7 @@ export default function RunResult() {
       {error && <p className="error">{error}</p>}
 
       <section className={`verdict ${verdict}`}>
-        <p className="meta">Run #{r.id}</p>
+        <p className="meta">Run #{r.id}{r.model_label ? ` · 실행 모델: ${r.model_label}` : ""}</p>
         <h1>{verdict === "clean" ? "✅ " : verdict === "caught" ? "🛡️ " : ""}{title}</h1>
         <p>{lead}</p>
         {verdict === "failed" && <p className="error">{r.error || "오류 메시지가 없습니다."}</p>}
