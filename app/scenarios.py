@@ -81,6 +81,15 @@ class RunRequest(BaseModel):
     model: str | None = None            # 실행에 쓸 Bedrock 모델 ID. None이면 서버 기본값.
 
 
+class CompareItem(BaseModel):
+    model_config = {"protected_namespaces": ()}   # 'model' 필드명 허용
+    run_id: int
+    model: str
+    model_label: str | None = None
+    status: str
+    result: str | None = None       # MATCH | DIFFERENT (DONE인 Run만)
+
+
 def _model_label(mid: str | None) -> str | None:
     """모델 ID를 사람이 읽는 이름으로. 목록에 없으면 ID 그대로."""
     if not mid:
@@ -210,6 +219,21 @@ def confirm_plan(sid: Id, body: Plan, user: User = Depends(current_user),
     return plan
 
 
+def _execute(s: Scenario, model: str | None, db: Session) -> Run:
+    """시나리오를 한 모델로 실행하고 Run을 저장해 돌려준다. model=None이면 서버 기본값.
+    계획은 서버 기본 모델로 이미 만들어져 있고, 여기서는 실행 모델만 바꾼다."""
+    run = Run(scenario_id=s.id, model=(model or config.BEDROCK_MODEL_ID), status="DONE", plan=s.plan)
+    try:
+        out = run_sim(s.task, s.pdf_text, json.loads(s.tools), get_client(), model=model)
+        run.trace = json.dumps([e.model_dump() for e in out["trace"]], ensure_ascii=False)
+        run.final_output = out["final_output"]
+    except Exception as e:
+        run.status, run.error = "FAILED", str(e)
+    db.add(run)
+    db.commit()
+    return run
+
+
 @router.post("/scenarios/{sid}/runs", response_model=RunDetail)
 def create_run(sid: Id, body: RunRequest, user: User = Depends(current_user),
                db: Session = Depends(get_db)):
@@ -218,18 +242,22 @@ def create_run(sid: Id, body: RunRequest, user: User = Depends(current_user),
         raise HTTPException(400, "계획을 확정한 뒤 실행할 수 있습니다.")
     if body.model and body.model not in config.SELECTABLE_MODELS.values():
         raise HTTPException(400, "허용되지 않은 모델입니다.")
-    used_model = body.model or config.BEDROCK_MODEL_ID    # 실제로 실행에 쓰는 모델을 기록
-    run = Run(scenario_id=s.id, model=used_model, status="DONE", plan=s.plan)
-    try:
-        # model은 이 실행에만 적용(계획은 서버 기본 모델). None이면 서버 기본값.
-        out = run_sim(s.task, s.pdf_text, json.loads(s.tools), get_client(), model=body.model)
-        run.trace = json.dumps([e.model_dump() for e in out["trace"]], ensure_ascii=False)
-        run.final_output = out["final_output"]
-    except Exception as e:
-        run.status, run.error = "FAILED", str(e)
-    db.add(run)
-    db.commit()
-    return _run_detail(run)
+    return _run_detail(_execute(s, body.model, db))
+
+
+@router.post("/scenarios/{sid}/compare", response_model=list[CompareItem])
+def compare_models(sid: Id, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """같은 시나리오를 선택 가능한 모든 모델로 실행해 결과를 나란히 돌려준다 (모델별 MATCH/DIFFERENT)."""
+    s = _own(db, user, sid)
+    if not s.plan or not s.plan_confirmed:
+        raise HTTPException(400, "계획을 확정한 뒤 실행할 수 있습니다.")
+    items = []
+    for mid in config.SELECTABLE_MODELS.values():
+        run = _execute(s, mid, db)
+        d = run_diff(run)
+        items.append(CompareItem(run_id=run.id, model=mid, model_label=_model_label(mid),
+                                 status=run.status, result=(d.result if d else None)))
+    return items
 
 
 @router.get("/runs/{rid}", response_model=RunDetail)

@@ -81,6 +81,19 @@ def test_run_records_selected_model():
     assert c.post(f"/api/scenarios/{sid}/runs", headers=h, json={"model": "bogus"}).status_code == 400
 
 
+def test_compare_runs_every_model():
+    from app import config
+    h = auth("compare@test.dev")
+    sid = make_scenario(h)
+    plan = c.post(f"/api/scenarios/{sid}/plan", headers=h).json()
+    c.put(f"/api/scenarios/{sid}/plan", headers=h, json=plan)
+    items = c.post(f"/api/scenarios/{sid}/compare", headers=h).json()
+    assert {i["model"] for i in items} == set(config.SELECTABLE_MODELS.values())
+    assert all(i["model_label"] and i["result"] in ("MATCH", "DIFFERENT") for i in items)
+    # 비교 실행도 각각 이력에 남는다
+    assert c.get(f"/api/scenarios/{sid}", headers=h).json()["run_count"] == len(items)
+
+
 def test_plan_confirm_rules():                                        # F5
     h = auth("plan@test.dev")
     sid = make_scenario(h)
