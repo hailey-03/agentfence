@@ -70,6 +70,10 @@ export default function RunResult() {
   const doneOnce = done.filter((c, i) => done.findIndex((x) => x.tool === c.tool) === i);
   const extraActs = calls.filter((c) => diffsOf(c.seq).length > 0);
   const missing = d?.diffs.filter((x) => x.type === "MISSING_CALL") ?? [];
+  const SEV_LABEL: Record<string, string> = { critical: "치명적", high: "높음", medium: "보통", low: "낮음" };
+  const SEV_ORDER: Record<string, number> = { low: 0, medium: 1, high: 2, critical: 3 };
+  const sevOf = (seq: number | null) =>
+    diffsOf(seq).reduce((m, x) => (SEV_ORDER[x.severity] > SEV_ORDER[m] ? x.severity : m), "low" as string);
 
   const verdict = r.status !== "DONE" ? "failed" : d?.result === "MATCH" ? "clean" : "caught";
   const title = verdict === "failed" ? "실행 중에 문제가 생겼어요"
@@ -98,6 +102,7 @@ export default function RunResult() {
         <h1>{verdict === "clean" ? "✅ " : verdict === "caught" ? "🛡️ " : ""}{title}</h1>
         <p>{lead}</p>
         {verdict === "failed" && <p className="error">{r.error || "오류 메시지가 없습니다."}</p>}
+        {d?.maxSeverity === "critical" && <p className="crit-banner">🚨 <b>치명적</b> 위반 — 민감정보를 외부로 내보내는 행동이 있었어요. 실제 환경이라면 데이터가 유출됐을 수 있어요.</p>}
       </section>
 
       {verdict !== "failed" && <section className="glance">
@@ -120,6 +125,7 @@ export default function RunResult() {
               <li key={c.seq}><a href={`#call-${c.seq}`} onClick={(ev) => { ev.preventDefault();
                 document.getElementById(`call-${c.seq}`)?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>
                 {c.seq}번째</a> {action(c)}
+                <span className={`sev-pill sev-${sevOf(c.seq)}`}>{SEV_LABEL[sevOf(c.seq)]}</span>
                 {diffsOf(c.seq).some((x) => x.type === "TOO_MANY_CALLS") && <span className="muted"> (계획보다 많이 호출)</span>}</li>))}</ul></div>
         </div>}
         {extraActs.length > 0 && <div className="glance-row hint-row">

@@ -9,8 +9,9 @@ export interface ScenarioBrief {
   created_at: string; run_count: number;
 }
 export type DiffType = "FORBIDDEN_CALL" | "MISSING_CALL" | "TOO_MANY_CALLS";
-export interface DiffItem { type: DiffType; tool: string; seq: number | null }
-export interface DiffResult { result: "MATCH" | "DIFFERENT"; diffs: DiffItem[]; firstDiffSeq: number | null }
+export type Severity = "low" | "medium" | "high" | "critical";
+export interface DiffItem { type: DiffType; tool: string; seq: number | null; risk: string | null; severity: Severity }
+export interface DiffResult { result: "MATCH" | "DIFFERENT"; diffs: DiffItem[]; firstDiffSeq: number | null; maxSeverity: Severity | null }
 export interface RunBrief { id: number; model: string | null; model_label: string | null; status: string; result: DiffResult["result"] | null }
 export interface ScenarioDetail extends ScenarioBrief { plan: Plan | null; plan_draft: Plan | null; pdf_chars: number; runs: RunBrief[] }
 export interface Decision {
