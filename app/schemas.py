@@ -80,18 +80,22 @@ class TraceEvent(BaseModel):
 
 # ---------- 계획 vs 실제 비교 (PRD F7 · 5.4) ----------
 DiffType = Literal["FORBIDDEN_CALL", "MISSING_CALL", "TOO_MANY_CALLS"]
+Severity = Literal["low", "medium", "high", "critical"]
 
 
 class DiffItem(BaseModel):
     type: DiffType
     tool: str
     seq: int | None = None          # MISSING_CALL은 호출이 없으므로 None
+    risk: str | None = None         # 도구 위험 등급 (catalog): WRITE_INTERNAL·READ_SENSITIVE·EXTERNAL·DESTRUCTIVE
+    severity: Severity = "medium"   # 이 위반의 심각도
 
 
 class DiffResult(BaseModel):
     result: Literal["MATCH", "DIFFERENT"]
     diffs: list[DiffItem]
     firstDiffSeq: int | None = None  # 차이가 난 첫 호출 순번 (MISSING_CALL만 있으면 None)
+    maxSeverity: Severity | None = None  # 가장 심각한 위반 (요약 표시용)
 
 
 class GuardrailResult(BaseModel):

@@ -232,3 +232,11 @@ button.danger{background:var(--bad);border-color:var(--bad);color:#fff}
 .model-pick { display: flex; flex-direction: column; gap: 6px; margin: 2px 0 14px; max-width: 460px; }
 .model-pick > span:first-child { font-weight: 600; font-size: .9rem; }
 .model-pick select { padding: 7px 9px; }
+
+/* 위반 심각도 배지 (RunResult) */
+.sev-pill{display:inline-block;font-size:.76rem;border-radius:999px;padding:1px 9px;margin-left:8px;white-space:nowrap}
+.sev-pill.sev-critical{background:var(--bad-bg);color:var(--bad);font-weight:600}
+.sev-pill.sev-high{background:#fde6d3;color:#b45309}
+.sev-pill.sev-medium{background:#fdf0d5;color:#8a5a00}
+.sev-pill.sev-low{background:#e8ecf1;color:var(--sub)}
+.crit-banner{margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--bad-bg);color:var(--bad);border:1px solid #f3b4ae;font-size:.92rem}

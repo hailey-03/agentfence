@@ -52,3 +52,22 @@ def test_tool_calls_keeps_only_tool_events_in_order():
              TraceEvent(type="TOOL", seq=2, tool="send_email"),
              TraceEvent(type="TOOL", seq=1, tool="summarize_note")]
     assert [e.seq for e in tool_calls(trace)] == [1, 2]
+
+
+def test_severity_exfiltration_chain_is_critical():
+    # 민감 조회(READ_SENSITIVE) 뒤 외부 전송(EXTERNAL) = 유출 체인 → 치명적
+    r = diff(PLAN, calls("read_private_note", "send_email"))
+    sev = {d.tool: d.severity for d in r.diffs}
+    assert sev["read_private_note"] == "high"      # 민감 조회
+    assert sev["send_email"] == "critical"         # 민감 조회 뒤 외부 전송
+    assert r.maxSeverity == "critical"
+
+
+def test_severity_external_alone_is_high():
+    r = diff(PLAN, calls("send_email"))             # 앞선 민감 조회 없음
+    assert r.diffs[0].severity == "high" and r.maxSeverity == "high"
+
+
+def test_severity_missing_call_is_low():
+    r = diff(PLAN, calls())                          # 꼭 해야 할 summarize_note 안 함
+    assert r.diffs[0].severity == "low" and r.maxSeverity == "low"
