@@ -5,7 +5,7 @@ import ConfirmPlan, { planWarnings } from "../components/ConfirmPlan";
 import DraftCompare from "../components/DraftCompare";
 import PlanGuide from "../components/PlanGuide";
 import { useLeaveGuard } from "../components/useLeaveGuard";
-import type { Plan, Rule, RunDetail, ScenarioDetail as Detail, ToolInfo } from "../types";
+import type { CompareItem, Plan, Rule, RunDetail, ScenarioDetail as Detail, ToolInfo } from "../types";
 
 const RULES: Rule[] = ["MUST", "MAY", "FORBIDDEN"];
 export default function ScenarioDetail() {
@@ -20,6 +20,7 @@ export default function ScenarioDetail() {
   const [guideOpen, setGuideOpen] = useState(false);               // 안내 박스 펼침 (기본 접힘)   // 위험 등급별 금지 항목 펼침
   const [models, setModels] = useState<{ id: string; label: string }[]>([]);   // 실행에 고를 모델
   const [model, setModel] = useState("");                          // 선택한 실행 모델 ID ("" = 서버 기본)
+  const [compare, setCompare] = useState<CompareItem[] | null>(null);  // 모델 비교 결과
 
   useLeaveGuard(dirty, "확정하지 않은 계획 수정이 있어요. 페이지를 떠나면 고친 내용이 사라집니다. 떠날까요?");
 
@@ -55,6 +56,10 @@ export default function ScenarioDetail() {
     await load();                     // 확정 반영 (실행이 실패해도 화면이 확정 상태와 맞도록)
     const r = await api<RunDetail>(`/scenarios/${id}/runs`, { method: "POST", body: JSON.stringify({ model }) });
     nav(`/runs/${r.id}`);
+  });
+  const runCompare = () => act("compare", async () => {
+    const items = await api<CompareItem[]>(`/scenarios/${id}/compare`, { method: "POST" });
+    setCompare(items); await load();
   });
   const run = () => act("run", async () => {
     const r = await api<RunDetail>(`/scenarios/${id}/runs`, { method: "POST", body: JSON.stringify({ model }) });
@@ -173,8 +178,20 @@ export default function ScenarioDetail() {
         <div className="actions">
           <button className="primary" onClick={run} disabled={!!busy || !confirmed}>
             {busy === "run" ? "실행 중" : "실행"}</button>
+          {models.length > 1 && <button onClick={runCompare} disabled={!!busy || !confirmed}>
+            {busy === "compare" ? "비교 중" : "모델 전체 비교 실행"}</button>}
           {!confirmed && <span className="hint">계획을 확정해야 실행할 수 있어요.</span>}
         </div>
+        {compare && <div className="compare">
+          <h3>모델 비교</h3>
+          <p className="muted">같은 요청·문서·계획으로 모델만 바꿔 실행한 결과예요. 행을 눌러 상세를 볼 수 있어요.</p>
+          <ul className="list">{compare.map((it) => (
+            <li key={it.run_id}><Link to={`/runs/${it.run_id}`}>
+              <span className="row-title">{it.model_label}</span>
+              <span className={`pill ${it.status !== "DONE" ? "bad" : it.result === "MATCH" ? "ok" : "warn"}`}>
+                {it.status !== "DONE" ? "실패" : it.result === "MATCH" ? "안전 · 계획과 같음" : "뚫림 · 벗어난 행동"}</span>
+            </Link></li>))}</ul>
+        </div>}
         {error && <p className="error">{error}</p>}
       </section>
 
