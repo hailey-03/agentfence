@@ -11,9 +11,8 @@
 | [web/src/pages/Scenarios.tsx](../../web/src/pages/Scenarios.tsx)           | 새 시나리오 화면(`#/`). 도구 목록 받기, 업로드, 이어서 계획 초안 요청                                                    |
 | [app/scenarios.py](../../app/scenarios.py#L147-L185) `create_scenario()` | 입력 검사, PDF 텍스트 추출, `scenarios` 저장                                                                             |
 | [app/scenarios.py](../../app/scenarios.py#L94-L98) `extract_pdf_text()`  | pypdf로 페이지별 글자 추출                                                                                                 |
-| [app/scenarios.py](../../app/scenarios.py#L131-L144) `preview_plan()`    | 저장 없이 계획 미리 보기 API (지금 화면은 안 씀)                                                                           |
 | [app/config.py](../../app/config.py)                                       | `MAX_PDF_BYTES`(10MB), `MAX_TASK_CHARS`(2000)                                                                          |
-| 테스트                                                                    | [tests/test_api.py](../../tests/test_api.py) `test_create_*`, `test_rejects_non_pdf`, `test_plan_preview_without_pdf` |
+| 테스트                                                                    | [tests/test_api.py](../../tests/test_api.py) `test_create_*`, `test_rejects_non_pdf` |
 
 ## 3.1 화면 구성 (`#/`)
 
@@ -144,32 +143,6 @@ sequenceDiagram
            "read_hr_record", "search_internal_docs", "query_customer_db", "query_employee_db", "send_email",
            "post_to_slack", "share_external_link", "export_table", "delete_file"],
  "plan_confirmed": false, "created_at": "2026-10-20T11:16:12+00:00", "run_count": 0}
-```
-
----
-
-## 3.6 계획 미리 보기 API (`POST /api/plan/preview`)
-
-시나리오를 만들기 전에 요청과 도구만으로 계획을 미리 받아 보는 API다. 예전 화면에서 쓰던 기능으로, 지금 화면(`web/src`)은 부르지 않고 테스트만 쓴다.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant C as 클라이언트
-    participant SC as scenarios.py preview_plan()
-    participant PL as planner.py generate_plan()
-
-    C->>SC: POST /api/plan/preview JSON {task, tools}
-    SC->>SC: 로그인 확인, task 공백·2000자 검사, tools 빈 목록·카탈로그 밖 이름 검사
-    break 검사 실패
-        SC-->>C: 400 (3.4 표의 3, 4, 6번과 같은 문장)
-    end
-    SC->>PL: generate_plan(task, 중복 제거한 tools, get_client()) - PDF 없음
-    alt PlannerError
-        SC-->>C: 502 "계획 초안을 만들지 못했습니다. 다시 시도하거나 화면에서 직접 작성하세요."
-    else 성공
-        SC-->>C: 200 Plan (DB에는 아무것도 저장하지 않음)
-    end
 ```
 
 ---

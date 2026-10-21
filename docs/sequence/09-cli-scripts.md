@@ -128,7 +128,7 @@ sequenceDiagram
 | [test_skeleton.py](../../tests/test_skeleton.py) | 앱 기동, 테이블 생성, 공통 형식 | [01](01-startup-and-request.md) |
 | [test_db.py](../../tests/test_db.py) | 예전 DB에 `plan_draft` 컬럼 자동 추가 | [01](01-startup-and-request.md) |
 | [test_auth.py](../../tests/test_auth.py) | 가입 규칙, 로그인, 토큰 검증 | [02](02-auth.md) |
-| [test_api.py](../../tests/test_api.py) | 시나리오 생성 검사, 미리 보기, 계획 확정 규칙, 실행, diff, 남의 데이터 404, 목록 쿼리 | [03](03-scenario-create.md) ~ [08](08-browse.md) |
+| [test_api.py](../../tests/test_api.py) | 시나리오 생성 검사, 계획 확정 규칙, 실행, diff, 남의 데이터 404, 목록 쿼리 | [03](03-scenario-create.md) ~ [08](08-browse.md) |
 | [test_planner.py](../../tests/test_planner.py) | Planner가 PDF를 받지 않음, 가짜 계획 규칙, `validate_plan`, 1번 재시도 | [04](04-plan-draft.md) |
 | [test_simulator.py](../../tests/test_simulator.py) | 공격 호출도 Mock 실행, toolResult 전달, 노출하지 않은 도구, 호출 한도 | [06](06-run.md) |
 | [test_tools_llm.py](../../tests/test_tools_llm.py) | Mock 도구 결과, `tool_spec`, Guardrails 응답 해석 | [06](06-run.md) |

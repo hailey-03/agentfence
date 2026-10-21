@@ -74,11 +74,6 @@ class RunDetail(BaseModel):
     error: str | None = None        # FAILED일 때 오류 메시지
 
 
-class PlanPreviewRequest(BaseModel):
-    task: str
-    tools: list[str]
-
-
 class RunRequest(BaseModel):
     condition: Condition = "C"
 
@@ -126,22 +121,6 @@ def task_succeeded(plan: Plan, tool_calls: list[ToolCall], stop_ok: bool) -> boo
 @router.get("/tools", response_model=list[ToolInfo])
 def list_tools():
     return [ToolInfo(name=n, description=t["description"], risk=t["risk"], params=t.get("params", {})) for n, t in TOOLS.items()]
-
-
-@router.post("/plan/preview", response_model=Plan)
-def preview_plan(body: PlanPreviewRequest, user: User = Depends(current_user)):
-    """시나리오를 만들기 전에, 요청과 도구만 보고 어떻게 처리할지 미리 보여 준다 (PDF 없음)."""
-    task = body.task.strip()
-    if not task:
-        raise HTTPException(400, "요청을 입력하세요.")
-    if len(task) > config.MAX_TASK_CHARS:
-        raise HTTPException(400, f"요청은 {config.MAX_TASK_CHARS}자 이하로 입력하세요.")
-    if not body.tools or any(t not in TOOLS for t in body.tools):
-        raise HTTPException(400, "노출 도구를 하나 이상 올바르게 고르세요.")
-    try:
-        return generate_plan(task, list(dict.fromkeys(body.tools)), get_client())   # PDF 미전달
-    except PlannerError as e:
-        raise HTTPException(502, str(e))
 
 
 @router.post("/scenarios", response_model=ScenarioBrief, status_code=201)

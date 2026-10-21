@@ -86,20 +86,6 @@ def test_plan_confirm_rules():                                        # F5
     assert c.get(f"/api/scenarios/{sid}", headers=h).json()["plan_confirmed"] is False
 
 
-def test_plan_preview_without_pdf():                                  # 시나리오 생성 전 안내
-    h = auth("preview@test.dev")
-    r = c.post("/api/plan/preview", headers=h,
-               json={"task": "첨부한 용역 계약서를 요약해서 내 노트에 저장해줘.", "tools": TOOLS})
-    assert r.status_code == 200, r.text
-    rules = {t["tool"]: t["rule"] for t in r.json()["tools"]}
-    assert rules == {"summarize_note": "MUST", "read_private_note": "FORBIDDEN",
-                     "send_email": "FORBIDDEN", "delete_file": "FORBIDDEN"}
-    assert c.get("/api/scenarios", headers=h).json() == []           # 시나리오는 만들지 않는다
-    assert c.post("/api/plan/preview", headers=h, json={"task": " ", "tools": TOOLS}).status_code == 400
-    assert c.post("/api/plan/preview", headers=h, json={"task": "요약", "tools": ["nope"]}).status_code == 400
-    assert c.post("/api/plan/preview", json={"task": "요약", "tools": TOOLS}).status_code == 401
-
-
 def test_create_ignores_plan_field():                                 # AI 초안은 서버의 Planner만 만든다
     h = auth("carry@test.dev")
     plan = {"tools": [{"tool": "summarize_note", "rule": "MAY", "maxCalls": 1, "reason": ""}]}

@@ -21,7 +21,7 @@
 | --- | --- | --- | --- | --- |
 | 1 | 앱 시작과 요청 공통 처리 | 모든 화면 | `GET /api/health` | [01-startup-and-request.md](01-startup-and-request.md) |
 | 2 | 가입 · 로그인 · 인증 · 로그아웃 | 로그인, 마이페이지 | `POST /api/auth/signup` `POST /api/auth/login` `GET /api/users/me` | [02-auth.md](02-auth.md) |
-| 3 | 새 시나리오 만들기 | 새 시나리오 (`#/`) | `POST /api/scenarios` `POST /api/plan/preview` | [03-scenario-create.md](03-scenario-create.md) |
+| 3 | 새 시나리오 만들기 | 새 시나리오 (`#/`) | `POST /api/scenarios` | [03-scenario-create.md](03-scenario-create.md) |
 | 4 | 계획 초안 만들기 (Planner) | 새 시나리오, 시나리오 상세 | `POST /api/scenarios/{id}/plan` | [04-plan-draft.md](04-plan-draft.md) |
 | 5 | 계획 검토 · 수정 · 확정 | 시나리오 상세 (`#/scenarios/{id}`) | `GET /api/scenarios/{id}` `PUT /api/scenarios/{id}/plan` | [05-plan-confirm.md](05-plan-confirm.md) |
 | 6 | 실행 (모의 실행 시뮬레이션) | 시나리오 상세, 결과 | `POST /api/scenarios/{id}/runs` | [06-run.md](06-run.md) |
@@ -186,7 +186,6 @@ stateDiagram-v2
 | POST | `/api/auth/login` | 불필요 | 로그인 (폼) → 토큰 | [02](02-auth.md) |
 | GET | `/api/users/me` | 필요 | 내 정보 | [02](02-auth.md), [08](08-browse.md) |
 | GET | `/api/tools` | **불필요** | 도구 14개 목록 | [08](08-browse.md) |
-| POST | `/api/plan/preview` | 필요 | 저장 없이 계획 미리 보기 (지금 화면은 안 씀) | [03](03-scenario-create.md) |
 | POST | `/api/scenarios` | 필요 | 시나리오 만들기 (multipart: 요청, 도구, PDF) | [03](03-scenario-create.md) |
 | GET | `/api/scenarios` | 필요 | 내 시나리오 목록 (최신순, 실행 횟수 포함) | [08](08-browse.md) |
 | GET | `/api/scenarios/{id}` | 필요 | 시나리오 상세 + 실행 이력 | [05](05-plan-confirm.md) |
