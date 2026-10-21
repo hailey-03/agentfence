@@ -154,8 +154,7 @@ stateDiagram-v2
     state "초안 (확정 전)" as DRAFT
     state "확정" as CONFIRMED
 
-    [*] --> NONE: 시나리오 만들기 (화면)
-    [*] --> DRAFT: 계획 포함 생성 (API만)
+    [*] --> NONE: 시나리오 만들기
     NONE --> DRAFT: 계획 만들기
     DRAFT --> DRAFT: 다시 만들기
     DRAFT --> CONFIRMED: 확정
@@ -170,7 +169,7 @@ stateDiagram-v2
     end note
 ```
 
-"계획 포함 생성"은 `POST /api/scenarios`에 `plan` 칸(미리 보기로 받은 계획)을 같이 보내는 경우다([03 문서](03-scenario-create.md)).
+`plan_draft`(AI 초안 원본)는 서버가 Planner로 만든 계획만 담는다. 시나리오를 만들 때는 계획을 받지 않는다([03 문서](03-scenario-create.md)).
 
 | 상태 | `plan` | `plan_draft` | `plan_confirmed` | 화면 표시 |
 | --- | --- | --- | --- | --- |

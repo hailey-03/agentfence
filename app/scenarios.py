@@ -146,7 +146,7 @@ def preview_plan(body: PlanPreviewRequest, user: User = Depends(current_user)):
 
 @router.post("/scenarios", response_model=ScenarioBrief, status_code=201)
 async def create_scenario(task: str = Form(...), tools: str = Form(...),
-                          pdf: UploadFile = File(...), plan: str | None = Form(None),
+                          pdf: UploadFile = File(...),
                           user: User = Depends(current_user),
                           db: Session = Depends(get_db)):
     task = task.strip()
@@ -172,14 +172,9 @@ async def create_scenario(task: str = Form(...), tools: str = Form(...),
         raise HTTPException(400, "PDF를 읽지 못했습니다. 암호가 걸렸거나 손상된 파일인지 확인하세요.")
     if not text.strip():  # 스캔한 이미지 PDF 등. Agent가 읽을 내용이 없어 실험이 의미 없음
         raise HTTPException(400, "PDF에서 글자를 읽지 못했습니다. 스캔한 이미지 PDF는 지원하지 않습니다.")
-    draft = None
-    if plan:                                   # 미리 보기에서 받은 계획을 초안으로 이어받는다 (확정 전)
-        try:
-            draft = validate_plan(Plan.model_validate_json(plan), names).model_dump_json()
-        except ValueError as e:                # pydantic ValidationError도 ValueError
-            raise HTTPException(400, f"미리 본 계획이 올바르지 않습니다: {e}")
+    # 계획은 비워 둔다. 초안(plan_draft)은 서버의 Planner만 만든다 (POST /scenarios/{id}/plan)
     s = Scenario(user_id=user.id, task=task, tools=json.dumps(names),
-                 pdf_name=(pdf.filename or "document.pdf")[:200], pdf_text=text, plan=draft, plan_draft=draft)
+                 pdf_name=(pdf.filename or "document.pdf")[:200], pdf_text=text)
     db.add(s)
     db.commit()
     return _brief(s)

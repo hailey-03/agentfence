@@ -12,7 +12,6 @@
 | [app/scenarios.py](../../app/scenarios.py#L147-L185) `create_scenario()` | 입력 검사, PDF 텍스트 추출, `scenarios` 저장                                                                             |
 | [app/scenarios.py](../../app/scenarios.py#L94-L98) `extract_pdf_text()`  | pypdf로 페이지별 글자 추출                                                                                                 |
 | [app/scenarios.py](../../app/scenarios.py#L131-L144) `preview_plan()`    | 저장 없이 계획 미리 보기 API (지금 화면은 안 씀)                                                                           |
-| [app/planner.py](../../app/planner.py#L44-L57) `validate_plan()`         | 미리 본 계획을 이어받을 때 검사                                                                                            |
 | [app/config.py](../../app/config.py)                                       | `MAX_PDF_BYTES`(10MB), `MAX_TASK_CHARS`(2000)                                                                          |
 | 테스트                                                                    | [tests/test_api.py](../../tests/test_api.py) `test_create_*`, `test_rejects_non_pdf`, `test_plan_preview_without_pdf` |
 
@@ -55,7 +54,6 @@ sequenceDiagram
     participant NS as Scenarios.tsx
     participant SC as scenarios.py create_scenario()
     participant PP as pypdf
-    participant PL as planner.py
     participant DB as DB (scenarios)
 
     U->>NS: 요청 입력, PDF 선택, [시나리오 만들기]
@@ -74,11 +72,7 @@ sequenceDiagram
     break 검사 실패 (3.4 표)
         SC-->>NS: 400 detail → 빨간 글씨, 버튼 원래대로
     end
-    opt plan 칸이 있음 (미리 본 계획 이어받기, 지금 화면은 보내지 않음)
-        SC->>PL: validate_plan(plan, tools)
-        PL-->>SC: 보정된 계획 → plan과 plan_draft에 같이 저장
-    end
-    SC->>DB: INSERT scenarios, COMMIT
+    SC->>DB: INSERT scenarios (plan, plan_draft는 비워 둠), COMMIT
     SC-->>NS: 201 ScenarioBrief {id, task, pdf_name, tools, plan_confirmed: false, created_at, run_count: 0}
     NS->>NS: 버튼 "계획 초안 만드는 중"
     NS->>SC: POST /api/scenarios/{id}/plan (04 문서)
@@ -109,7 +103,6 @@ sequenceDiagram
 | 8    | 파일이 `%PDF-`로 시작                                                 | 400 `PDF 파일이 아닙니다.`                                                   |
 | 9    | pypdf로 읽힘, 암호 없음                                                 | 400 `PDF를 읽지 못했습니다. 암호가 걸렸거나 손상된 파일인지 확인하세요.`     |
 | 10   | 추출한 글자가 공백뿐이 아님 (스캔 이미지 PDF 거르기)                    | 400 `PDF에서 글자를 읽지 못했습니다. 스캔한 이미지 PDF는 지원하지 않습니다.` |
-| 11   | `plan` 칸이 있으면 Plan 형식이고 `validate_plan` 통과               | 400 `미리 본 계획이 올바르지 않습니다: …`                                   |
 
 `tools`로 거절되는 값의 예: `5`, `"send_email"`, `{"a": 1}`, `[1]`, `[]`, `["run_sql"]`, `not json`.
 
@@ -139,7 +132,7 @@ sequenceDiagram
 | `tools`                | `["summarize_note", "update_doc", ..., "delete_file"]` (14개, 카탈로그 순서) |
 | `pdf_name`             | `attack_read_send.pdf`                                                       |
 | `pdf_text`             | 위 텍스트 (96자). MariaDB에서는 LONGTEXT                                       |
-| `plan`, `plan_draft` | NULL (plan 칸을 보냈으면 둘 다 그 계획)                                        |
+| `plan`, `plan_draft` | NULL (이어서 부르는 `POST /api/scenarios/{id}/plan`이 채운다, 04 문서)         |
 | `plan_confirmed`       | 0                                                                              |
 | `created_at`           | `2026-10-20T11:16:12+00:00` (UTC 문자열)                                     |
 
@@ -177,7 +170,6 @@ sequenceDiagram
     else 성공
         SC-->>C: 200 Plan (DB에는 아무것도 저장하지 않음)
     end
-    Note over C,SC: 받은 계획을 POST /api/scenarios의 plan 칸에 JSON 문자열로 넣으면<br/>그 시나리오의 초안(plan = plan_draft, 확정 전)으로 저장된다
 ```
 
 ---

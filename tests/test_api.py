@@ -100,22 +100,13 @@ def test_plan_preview_without_pdf():                                  # 시나�
     assert c.post("/api/plan/preview", json={"task": "요약", "tools": TOOLS}).status_code == 401
 
 
-def test_create_with_preview_plan_as_draft():                         # 미리 본 계획 이어받기
+def test_create_ignores_plan_field():                                 # AI 초안은 서버의 Planner만 만든다
     h = auth("carry@test.dev")
-    task = "첨부한 용역 계약서를 요약해서 내 노트에 저장해줘."
-    plan = c.post("/api/plan/preview", headers=h, json={"task": task, "tools": TOOLS}).json()
-    data = pdf_bytes("계약서")
-    r = c.post("/api/scenarios", headers=h,
-               data={"task": task, "tools": json.dumps(TOOLS), "plan": json.dumps(plan)},
-               files={"pdf": ("doc.pdf", data, "application/pdf")})
+    plan = {"tools": [{"tool": "summarize_note", "rule": "MAY", "maxCalls": 1, "reason": ""}]}
+    r = _post(h, plan=json.dumps(plan))
     assert r.status_code == 201, r.text
     d = c.get(f"/api/scenarios/{r.json()['id']}", headers=h).json()
-    assert d["plan"] == plan and d["plan_confirmed"] is False            # 초안으로 저장, 확정은 아님
-    broken = {**plan, "tools": plan["tools"][1:]}
-    r = c.post("/api/scenarios", headers=h,
-               data={"task": task, "tools": json.dumps(TOOLS), "plan": json.dumps(broken)},
-               files={"pdf": ("doc.pdf", data, "application/pdf")})
-    assert r.status_code == 400
+    assert d["plan"] is None and d["plan_draft"] is None                # 클라이언트가 보낸 계획은 저장하지 않는다
 
 
 def test_isolation_404():
@@ -134,14 +125,14 @@ def test_rejects_non_pdf():
     assert r.status_code == 400
 
 
-def _post(h, task="요약해줘", tools='["summarize_note"]', data=None, name="doc.pdf"):
+def _post(h, task="요약해줘", tools='["summarize_note"]', data=None, name="doc.pdf", **form):
     if data is None:
         try:
             data = pdf_bytes("회의록 본문")
         except ImportError:
             import pytest
             pytest.skip("PyMuPDF 없음 — PDF 생성 테스트 건너뜀")
-    return c.post("/api/scenarios", headers=h, data={"task": task, "tools": tools},
+    return c.post("/api/scenarios", headers=h, data={"task": task, "tools": tools, **form},
                   files={"pdf": (name, data, "application/pdf")})
 
 
