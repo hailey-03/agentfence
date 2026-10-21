@@ -134,6 +134,6 @@ sequenceDiagram
 | [test_tools_llm.py](../../tests/test_tools_llm.py) | Mock 도구 결과, `tool_spec`, Guardrails 응답 해석 | [06](06-run.md) |
 | [test_diff.py](../../tests/test_diff.py) | MATCH, FORBIDDEN_CALL, MISSING_CALL, TOO_MANY_CALLS, 계획에 없는 도구 | [07](07-result-diff.md) |
 
-2026-10-20 코드 기준 PyMuPDF가 설치돼 있으면 55개가 모두 통과한다.
+2026-10-21 코드 기준 PyMuPDF가 설치돼 있으면 53개가 모두 통과한다.
 
-⚠️ PDF를 만들어 올리는 API 테스트는 PyMuPDF가 필요한데 `requirements.txt`에는 없다. PyMuPDF가 없으면 11개는 건너뛰고(skip), `test_create_with_preview_plan_as_draft`는 건너뛰기 처리 없이 PyMuPDF를 불러서 실패한다(1 failed, 43 passed, 11 skipped). README의 "53 passed"도 지금 개수와 다르다.
+⚠️ PDF를 만들어 올리는 API 테스트는 PyMuPDF가 필요한데 `requirements.txt`에는 없다. PyMuPDF가 없으면 그 11개는 건너뛴다(42 passed, 11 skipped).

@@ -12,7 +12,7 @@
 | [web/src/App.tsx](../../web/src/App.tsx#L13-L34) `Shell` | 상단 바, 좁은 화면의 사이드바 열고 닫기 |
 | [web/src/pages/MyPage.tsx](../../web/src/pages/MyPage.tsx) | 계정 정보, 내 활동, 로그아웃 |
 | [web/src/pages/ToolsGuide.tsx](../../web/src/pages/ToolsGuide.tsx) | 도구 14개 소개 |
-| [app/scenarios.py](../../app/scenarios.py#L126-L195) | `list_tools()`, `list_scenarios()` |
+| [app/scenarios.py](../../app/scenarios.py#L108-L149) | `list_tools()`, `list_scenarios()` |
 | [app/auth.py](../../app/auth.py#L161-L163) `read_me()` | 내 정보 |
 | [app/catalog.py](../../app/catalog.py) | 도구 정의 원본 |
 | 테스트 | [tests/test_api.py](../../tests/test_api.py) `test_list_and_detail_show_created_at_and_run_count`, `test_list_does_not_load_pdf_text_or_traces`, `test_isolation_404` |

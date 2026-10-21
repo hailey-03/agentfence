@@ -9,8 +9,8 @@
 | 파일 | 하는 일 |
 | --- | --- |
 | [web/src/pages/RunResult.tsx](../../web/src/pages/RunResult.tsx) | 결과 화면. 판정 제목, 한눈에 보기, 계획 vs 실제 표, 실행 기록, 최종 응답, 다시 실행 |
-| [web/src/pages/ScenarioDetail.tsx](../../web/src/pages/ScenarioDetail.tsx#L170-L177) | 시나리오 상세의 실행 이력 목록 |
-| [app/scenarios.py](../../app/scenarios.py#L261-L278) | `get_run()`, `_run_detail()`, `run_diff()` |
+| [web/src/pages/ScenarioDetail.tsx](../../web/src/pages/ScenarioDetail.tsx#L170-L176) | 시나리오 상세의 실행 이력 목록 |
+| [app/scenarios.py](../../app/scenarios.py#L211-L227) | `get_run()`, `_run_detail()`, `run_diff()` |
 | [app/diff.py](../../app/diff.py) | `tool_calls()` trace에서 도구 호출만 뽑기, `diff()` 비교 |
 | [app/schemas.py](../../app/schemas.py#L81-L94) | `DiffItem`, `DiffResult` |
 | 테스트 | [tests/test_diff.py](../../tests/test_diff.py), [tests/test_api.py](../../tests/test_api.py) `test_run_reports_plan_diff` |

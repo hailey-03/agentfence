@@ -9,8 +9,8 @@
 | 파일                                                                      | 하는 일                                                                                                                    |
 | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | [web/src/pages/Scenarios.tsx](../../web/src/pages/Scenarios.tsx)           | 새 시나리오 화면(`#/`). 도구 개수 안내, 업로드, 이어서 계획 초안 요청                                                    |
-| [app/scenarios.py](../../app/scenarios.py#L147-L185) `create_scenario()` | 입력 검사, PDF 텍스트 추출, `scenarios` 저장                                                                             |
-| [app/scenarios.py](../../app/scenarios.py#L94-L98) `extract_pdf_text()`  | pypdf로 페이지별 글자 추출                                                                                                 |
+| [app/scenarios.py](../../app/scenarios.py#L113-L139) `create_scenario()` | 입력 검사, PDF 텍스트 추출, `scenarios` 저장                                                                             |
+| [app/scenarios.py](../../app/scenarios.py#L87-L91) `extract_pdf_text()`  | pypdf로 페이지별 글자 추출                                                                                                 |
 | [app/config.py](../../app/config.py)                                       | `MAX_PDF_BYTES`(10MB), `MAX_TASK_CHARS`(2000)                                                                          |
 | 테스트                                                                    | [tests/test_api.py](../../tests/test_api.py) `test_create_*`, `test_rejects_non_pdf` |
 

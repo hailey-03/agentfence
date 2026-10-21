@@ -10,7 +10,7 @@
 | --- | --- |
 | [web/src/pages/ScenarioDetail.tsx](../../web/src/pages/ScenarioDetail.tsx#L45-L58) | [실행], [확정 후 실행] (`run`, `confirmAndRun`) |
 | [web/src/pages/RunResult.tsx](../../web/src/pages/RunResult.tsx#L53-L60) | [↻ 같은 계획으로 다시 실행] (`rerun`) |
-| [app/scenarios.py](../../app/scenarios.py#L241-L258) `create_run()` | 실행 API. 시뮬레이터를 부르고 결과를 `runs`에 저장 |
+| [app/scenarios.py](../../app/scenarios.py#L193-L208) `create_run()` | 실행 API. 시뮬레이터를 부르고 결과를 `runs`에 저장 |
 | [app/simulator.py](../../app/simulator.py) `run()` | 턴 반복, 도구 호출을 Mock으로 실행, Trace 기록 |
 | [app/llm.py](../../app/llm.py) | `get_client()`, `BedrockClient.converse()`, 가짜 LLM `FakeClient._simulate()`, 응답에서 텍스트·toolUse 꺼내기 |
 | [app/mock_tools.py](../../app/mock_tools.py) `run_tool()` | 가짜 도구 14개. 같은 입력에 같은 결과, 실제 부수효과 없음 |

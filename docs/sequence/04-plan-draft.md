@@ -8,9 +8,9 @@ AI가 **요청 문장과 도구 정의만 보고** 도구마다 꼭 호출(MUST)
 
 | 파일 | 하는 일 |
 | --- | --- |
-| [web/src/pages/Scenarios.tsx](../../web/src/pages/Scenarios.tsx#L27-L30) | 시나리오를 만든 직후 자동으로 요청 |
+| [web/src/pages/Scenarios.tsx](../../web/src/pages/Scenarios.tsx#L25-L28) | 시나리오를 만든 직후 자동으로 요청 |
 | [web/src/pages/ScenarioDetail.tsx](../../web/src/pages/ScenarioDetail.tsx#L33-L44) | [계획 만들기] / [다시 만들기] 버튼 (`remake`, `makePlan`) |
-| [app/scenarios.py](../../app/scenarios.py#L215-L225) `make_plan()` | API. 결과를 `plan`, `plan_draft`에 저장하고 확정을 푼다 |
+| [app/scenarios.py](../../app/scenarios.py#L167-L177) `make_plan()` | API. 결과를 `plan`, `plan_draft`에 저장하고 확정을 푼다 |
 | [app/planner.py](../../app/planner.py) | `generate_plan()` LLM 호출·재시도, `validate_plan()` 검사·보정, `SYSTEM` 지시문, `submit_plan` 도구 정의 |
 | [app/llm.py](../../app/llm.py) | `get_client()`, `BedrockClient.converse()`, 가짜 LLM의 계획 규칙 `FakeClient._plan()` |
 | [app/catalog.py](../../app/catalog.py) | 도구 설명과 입력 형식(`input_schema`) |

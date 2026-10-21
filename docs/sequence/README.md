@@ -2,7 +2,7 @@
 
 코드를 열지 않고도 기능별 동작을 따라갈 수 있도록, 화면 → API → 서버 모듈 → DB·LLM 사이에 오가는 호출을 기능별로 나눠 그린 문서 모음이다.
 
-- 기준 코드: `main` 브랜치 `ec24ace` (2026-10-20)
+- 기준 코드: `main` 브랜치 `ec24ace` (2026-10-20)에 2026-10-21 정리를 반영. 계획 미리 보기 API, 시나리오 만들기의 `plan`·`tools` 칸, Run의 `task_success`를 없앴다
 - 예시 데이터는 가짜 LLM(`LLM_MODE=fake`)으로 API를 실제로 호출해서 얻은 값이다. 실제 Bedrock 모델은 응답이 다를 수 있다.
 - 그림은 Mermaid로 그렸다. GitHub에서는 바로 그림으로 보이고, VS Code 미리 보기에서는 Mermaid 확장(예: *Markdown Preview Mermaid Support*)이 있어야 보인다.
 

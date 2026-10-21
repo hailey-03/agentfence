@@ -13,7 +13,7 @@
 | [web/src/components/DraftCompare.tsx](../../web/src/components/DraftCompare.tsx) | 확정 후 "AI 초안과 비교" (`compareDraft`) |
 | [web/src/components/PlanGuide.tsx](../../web/src/components/PlanGuide.tsx) | "안내 자세히 보기" — 계획을 문장으로 풀어 쓴 안내 |
 | [web/src/components/useLeaveGuard.ts](../../web/src/components/useLeaveGuard.ts) | 확정하지 않은 수정이 있을 때 떠나기 전 확인 |
-| [app/scenarios.py](../../app/scenarios.py#L198-L238) | `get_scenario()` 상세 조회, `confirm_plan()` 확정 |
+| [app/scenarios.py](../../app/scenarios.py#L152-L190) | `get_scenario()` 상세 조회, `confirm_plan()` 확정 |
 | [app/planner.py](../../app/planner.py#L44-L57) `validate_plan()` | 확정할 때 도구 집합 검사와 횟수 보정 |
 | 테스트 | [tests/test_api.py](../../tests/test_api.py) `test_plan_confirm_rules`, `test_plan_draft_kept_after_confirm`, `test_isolation_404` |
 
