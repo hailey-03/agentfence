@@ -5,3 +5,7 @@ __pycache__/
 web/node_modules/
 web/dist/
 .pytest_cache/
+
+# 생성물 (벤치마크/데모 PDF)
+eval/datasets/
+eval/benchmark_report.md
