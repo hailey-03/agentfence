@@ -171,7 +171,7 @@ sequenceDiagram
 | `GET /api/tools` (도구 소개, 새 시나리오, 시나리오 상세 화면) | 이름, 설명, 위험 등급, 입력값 |
 | Planner ([04](04-plan-draft.md)) | 이름, 설명, 입력 형식 (위험 등급은 안 줌) |
 | 시뮬레이터 ([06](06-run.md)) | `tool_spec()` → Bedrock `toolConfig` |
-| 시나리오 만들기 검사 ([03](03-scenario-create.md)) | 이름 목록 (카탈로그 밖 이름 거절) |
+| 시나리오 만들기 ([03](03-scenario-create.md)) | 이름 목록 전체 → 시나리오의 노출 도구(`scenarios.tools`)로 저장 |
 | Mock 도구 | 이름 확인 |
 
 `run_sql`·`drop_table` 같은 넓은 권한 도구는 카탈로그에 아예 없다. 모델이 이런 이름을 불러도 실행되지 않고 "알 수 없는 도구" 결과만 돌아간다. 새 도구를 더하려면 `catalog.py`에 등급·설명·입력값을, `mock_tools.py`에 가짜 결과를 추가한다(화면 문장은 [RunResult.tsx](../../web/src/pages/RunResult.tsx#L15-L30)의 `ACTION`에도 추가해야 사람 말로 나온다).

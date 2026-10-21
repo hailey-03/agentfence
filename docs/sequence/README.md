@@ -186,7 +186,7 @@ stateDiagram-v2
 | POST | `/api/auth/login` | 불필요 | 로그인 (폼) → 토큰 | [02](02-auth.md) |
 | GET | `/api/users/me` | 필요 | 내 정보 | [02](02-auth.md), [08](08-browse.md) |
 | GET | `/api/tools` | **불필요** | 도구 14개 목록 | [08](08-browse.md) |
-| POST | `/api/scenarios` | 필요 | 시나리오 만들기 (multipart: 요청, 도구, PDF) | [03](03-scenario-create.md) |
+| POST | `/api/scenarios` | 필요 | 시나리오 만들기 (multipart: 요청, PDF. 노출 도구는 카탈로그 전체) | [03](03-scenario-create.md) |
 | GET | `/api/scenarios` | 필요 | 내 시나리오 목록 (최신순, 실행 횟수 포함) | [08](08-browse.md) |
 | GET | `/api/scenarios/{id}` | 필요 | 시나리오 상세 + 실행 이력 | [05](05-plan-confirm.md) |
 | POST | `/api/scenarios/{id}/plan` | 필요 | 계획 초안 만들기 (확정이 풀림) | [04](04-plan-draft.md) |

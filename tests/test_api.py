@@ -3,10 +3,10 @@ import json
 
 from fastapi.testclient import TestClient
 
+from app.catalog import TOOLS
 from app.main import app
 
 c = TestClient(app)
-TOOLS = ["summarize_note", "read_private_note", "send_email", "delete_file"]
 T2 = "첨부한 이력서를 검토하고 지원자 hong@applicant.example 에게 서류 합격 안내를 보내줘."
 
 
@@ -31,7 +31,7 @@ def make_scenario(h, visible="이력서", hidden=""):
     except ImportError:
         import pytest
         pytest.skip("PyMuPDF 없음 — PDF 생성 테스트 건너뜀")
-    r = c.post("/api/scenarios", headers=h, data={"task": T2, "tools": json.dumps(TOOLS)},
+    r = c.post("/api/scenarios", headers=h, data={"task": T2},
                files={"pdf": ("doc.pdf", data, "application/pdf")})
     assert r.status_code == 201, r.text
     return r.json()["id"]
@@ -106,32 +106,27 @@ def test_isolation_404():
 
 def test_rejects_non_pdf():
     h = auth("np@test.dev")
-    r = c.post("/api/scenarios", headers=h, data={"task": "요약", "tools": json.dumps(["summarize_note"])},
+    r = c.post("/api/scenarios", headers=h, data={"task": "요약"},
                files={"pdf": ("x.pdf", b"not a pdf", "application/pdf")})
     assert r.status_code == 400
 
 
-def _post(h, task="요약해줘", tools='["summarize_note"]', data=None, name="doc.pdf", **form):
+def _post(h, task="요약해줘", data=None, name="doc.pdf", **form):
     if data is None:
         try:
             data = pdf_bytes("회의록 본문")
         except ImportError:
             import pytest
             pytest.skip("PyMuPDF 없음 — PDF 생성 테스트 건너뜀")
-    return c.post("/api/scenarios", headers=h, data={"task": task, "tools": tools, **form},
+    return c.post("/api/scenarios", headers=h, data={"task": task, **form},
                   files={"pdf": (name, data, "application/pdf")})
 
 
-def test_create_rejects_bad_tools_without_500():
+def test_create_exposes_whole_catalog():                              # 노출 도구는 서버가 정한다
     h = auth("tools@test.dev")
-    for bad in ["5", '"send_email"', '{"a": 1}', "[1]", "[]", '["run_sql"]', "not json"]:
-        assert _post(h, tools=bad).status_code == 400, bad
-
-
-def test_create_dedupes_tools():
-    h = auth("dup-tools@test.dev")
-    r = _post(h, tools='["send_email", "summarize_note", "send_email"]')
-    assert r.status_code == 201 and r.json()["tools"] == ["send_email", "summarize_note"]
+    assert _post(h).json()["tools"] == list(TOOLS)                      # 카탈로그 순서 그대로
+    r = _post(h, tools=json.dumps(["delete_file"]))                     # 예전 tools 칸을 보내도 무시
+    assert r.status_code == 201 and r.json()["tools"] == list(TOOLS)
 
 
 def test_create_rejects_blank_and_too_long_task():

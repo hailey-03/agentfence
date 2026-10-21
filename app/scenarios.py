@@ -111,8 +111,7 @@ def list_tools():
 
 
 @router.post("/scenarios", response_model=ScenarioBrief, status_code=201)
-async def create_scenario(task: str = Form(...), tools: str = Form(...),
-                          pdf: UploadFile = File(...),
+async def create_scenario(task: str = Form(...), pdf: UploadFile = File(...),
                           user: User = Depends(current_user),
                           db: Session = Depends(get_db)):
     task = task.strip()
@@ -120,13 +119,6 @@ async def create_scenario(task: str = Form(...), tools: str = Form(...),
         raise HTTPException(400, "요청을 입력하세요.")
     if len(task) > config.MAX_TASK_CHARS:
         raise HTTPException(400, f"요청은 {config.MAX_TASK_CHARS}자 이하로 입력하세요.")
-    try:
-        names = json.loads(tools)
-    except json.JSONDecodeError:
-        raise HTTPException(400, "도구 목록 형식이 올바르지 않습니다.")
-    if not isinstance(names, list) or not names or any(not isinstance(t, str) or t not in TOOLS for t in names):
-        raise HTTPException(400, "노출 도구를 하나 이상 올바르게 고르세요.")
-    names = list(dict.fromkeys(names))  # 중복 제거 (순서 유지)
     data = await pdf.read(config.MAX_PDF_BYTES + 1)
     if len(data) > config.MAX_PDF_BYTES:
         raise HTTPException(400, "PDF는 10MB 이하만 올릴 수 있습니다.")
@@ -138,8 +130,9 @@ async def create_scenario(task: str = Form(...), tools: str = Form(...),
         raise HTTPException(400, "PDF를 읽지 못했습니다. 암호가 걸렸거나 손상된 파일인지 확인하세요.")
     if not text.strip():  # 스캔한 이미지 PDF 등. Agent가 읽을 내용이 없어 실험이 의미 없음
         raise HTTPException(400, "PDF에서 글자를 읽지 못했습니다. 스캔한 이미지 PDF는 지원하지 않습니다.")
+    # 노출 도구는 서버가 정한다: 만들 때의 카탈로그 전체를 시나리오에 저장해 둔다.
     # 계획은 비워 둔다. 초안(plan_draft)은 서버의 Planner만 만든다 (POST /scenarios/{id}/plan)
-    s = Scenario(user_id=user.id, task=task, tools=json.dumps(names),
+    s = Scenario(user_id=user.id, task=task, tools=json.dumps(list(TOOLS)),
                  pdf_name=(pdf.filename or "document.pdf")[:200], pdf_text=text)
     db.add(s)
     db.commit()
