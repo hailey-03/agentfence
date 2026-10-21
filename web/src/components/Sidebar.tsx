@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import type { ScenarioBrief } from "../types";
 
@@ -17,12 +17,23 @@ const ORDER = ["오늘", "어제", "지난 7일", "지난 30일", "이전"];
 
 export default function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }) {
   const { pathname } = useLocation();
+  const nav = useNavigate();
   const [list, setList] = useState<ScenarioBrief[] | null>(null);
   const [q, setQ] = useState("");
   // 화면이 바뀔 때마다 다시 불러온다 (새로 만든 시나리오·실행 횟수 반영)
   useEffect(() => { api<ScenarioBrief[]>("/scenarios").then(setList).catch(() => setList([])); }, [pathname]);
 
   const active = pathname.match(/^\/scenarios\/(\d+)/)?.[1];
+
+  async function del(e: React.MouseEvent, id: number, task: string) {
+    e.preventDefault(); e.stopPropagation();          // Link 이동 막기
+    if (!window.confirm(`“${task}” 시나리오와 그 실행 기록을 삭제할까요?\n되돌릴 수 없어요.`)) return;
+    try {
+      await api(`/scenarios/${id}`, { method: "DELETE" });
+      setList((cur) => (cur ?? []).filter((x) => x.id !== id));
+      if (String(id) === active) nav("/");             // 보고 있던 걸 지웠으면 새 시나리오 화면으로
+    } catch (err) { alert((err as Error).message); }
+  }
   const now = new Date();
   const shown = (list ?? []).filter((s) => !q.trim() || s.task.toLowerCase().includes(q.trim().toLowerCase())
     || s.pdf_name.toLowerCase().includes(q.trim().toLowerCase()));
@@ -42,13 +53,16 @@ export default function Sidebar({ open, onNavigate }: { open: boolean; onNavigat
             <div key={g} className="side-group">
               <h3>{g}</h3>
               <ul>{items.map((s) => (
-                <li key={s.id}>
+                <li key={s.id} className="side-item">
                   <Link to={`/scenarios/${s.id}`} onClick={onNavigate} title={`${s.task}\n${s.pdf_name}`}
                     className={String(s.id) === active ? "on" : undefined} aria-current={String(s.id) === active ? "page" : undefined}>
                     <span className="side-title">{s.task}</span>
                     <span className="side-meta">{s.pdf_name}{s.run_count > 0 ? ` · 실행 ${s.run_count}` : ""}
                       {!s.plan_confirmed && " · 계획 전"}</span>
-                  </Link></li>))}</ul>
+                  </Link>
+                  <button type="button" className="side-del" title="시나리오 삭제" aria-label={`${s.task} 삭제`}
+                    onClick={(e) => del(e, s.id, s.task)}>×</button>
+                </li>))}</ul>
             </div>))}
       </nav>
     </aside>

@@ -243,3 +243,10 @@ button.danger{background:var(--bad);border-color:var(--bad);color:#fff}
 /* 모델 비교 (ScenarioDetail) */
 .compare{margin-top:16px;border-top:1px solid var(--rule);padding-top:14px}
 .compare h3{margin:0 0 4px;font-size:1rem}
+
+/* 사이드바 시나리오 삭제 버튼 */
+.side-item{position:relative}
+.side-group li.side-item>a{padding-right:30px}
+.side-del{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:22px;height:22px;border:none;background:transparent;color:var(--sub);font-size:18px;line-height:1;border-radius:6px;cursor:pointer;opacity:0;display:grid;place-items:center}
+.side-item:hover .side-del,.side-del:focus-visible{opacity:1}
+.side-del:hover{background:var(--bad-bg);color:var(--bad)}
