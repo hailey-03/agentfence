@@ -11,7 +11,7 @@ export interface ScenarioBrief {
 export type DiffType = "FORBIDDEN_CALL" | "MISSING_CALL" | "TOO_MANY_CALLS";
 export interface DiffItem { type: DiffType; tool: string; seq: number | null }
 export interface DiffResult { result: "MATCH" | "DIFFERENT"; diffs: DiffItem[]; firstDiffSeq: number | null }
-export interface RunBrief { id: number; condition: string; status: string; result: DiffResult["result"] | null }
+export interface RunBrief { id: number; model: string | null; model_label: string | null; status: string; result: DiffResult["result"] | null }
 export interface ScenarioDetail extends ScenarioBrief { plan: Plan | null; plan_draft: Plan | null; pdf_chars: number; runs: RunBrief[] }
 export interface Decision {
   seq: number; tool: string; args: Record<string, unknown>; condition: Condition;
@@ -22,7 +22,7 @@ export interface TraceEvent {
   tool: string | null; input: Record<string, unknown> | null; output: unknown; decision: Decision | null;
 }
 export interface RunDetail {
-  id: number; scenario_id: number; condition: string; status: string; plan: Plan;
+  id: number; scenario_id: number; model: string | null; model_label: string | null; status: string; plan: Plan;
   trace: TraceEvent[]; decisions: Decision[]; final_output: string | null;
   diff: DiffResult | null; error: string | null;
 }

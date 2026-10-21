@@ -182,6 +182,7 @@ export default function ScenarioDetail() {
         <ul className="list">{s.runs.map((r) => (
           <li key={r.id}><Link to={`/runs/${r.id}`}>
             <span className="row-title">Run #{r.id}</span>
+            {r.model_label && <span className="meta">{r.model_label}</span>}
             <span className={`pill ${r.status !== "DONE" ? "bad" : r.result === "MATCH" ? "ok" : "warn"}`}>
               {r.status !== "DONE" ? "실패" : r.result === "MATCH" ? "계획과 같음" : "벗어난 행동 있음"}</span>
           </Link></li>))}</ul></section>}
