@@ -74,6 +74,7 @@ class RunDetail(BaseModel):
 
 class RunRequest(BaseModel):
     condition: Condition = "C"
+    model: str | None = None            # 실행에 쓸 Bedrock 모델 ID. None이면 서버 기본값.
 
 
 # ---------- 공통 ----------
@@ -108,6 +109,13 @@ def run_diff(run: Run) -> DiffResult | None:
 @router.get("/tools", response_model=list[ToolInfo])
 def list_tools():
     return [ToolInfo(name=n, description=t["description"], risk=t["risk"], params=t.get("params", {})) for n, t in TOOLS.items()]
+
+
+@router.get("/models")
+def list_models():
+    """실행에서 고를 수 있는 모델 목록 (label, id). 기본값도 알려준다."""
+    return {"models": [{"id": v, "label": k} for k, v in config.SELECTABLE_MODELS.items()],
+            "default": config.BEDROCK_MODEL_ID}
 
 
 @router.post("/scenarios", response_model=ScenarioBrief, status_code=201)
@@ -196,9 +204,12 @@ def create_run(sid: Id, body: RunRequest, user: User = Depends(current_user),
     s = _own(db, user, sid)
     if not s.plan or not s.plan_confirmed:
         raise HTTPException(400, "계획을 확정한 뒤 실행할 수 있습니다.")
+    if body.model and body.model not in config.SELECTABLE_MODELS.values():
+        raise HTTPException(400, "허용되지 않은 모델입니다.")
     run = Run(scenario_id=s.id, condition=body.condition, status="DONE", plan=s.plan)
     try:
-        out = run_sim(s.task, s.pdf_text, json.loads(s.tools), get_client())
+        # model은 이 실행에만 적용(계획은 서버 기본 모델). None이면 서버 기본값.
+        out = run_sim(s.task, s.pdf_text, json.loads(s.tools), get_client(), model=body.model)
         run.trace = json.dumps([e.model_dump() for e in out["trace"]], ensure_ascii=False)
         run.final_output = out["final_output"]
     except Exception as e:

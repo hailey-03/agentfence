@@ -228,3 +228,7 @@ button.danger{background:var(--bad);border-color:var(--bad);color:#fff}
   .sidebar{display:none;position:fixed;top:0;left:0;bottom:0;width:min(300px,85vw);height:auto;z-index:20;box-shadow:4px 0 24px rgba(0,0,0,.18)}
   .sidebar.open{display:flex} .side-toggle{display:inline-block}
 }
+
+.model-pick { display: flex; flex-direction: column; gap: 6px; margin: 2px 0 14px; max-width: 460px; }
+.model-pick > span:first-child { font-weight: 600; font-size: .9rem; }
+.model-pick select { padding: 7px 9px; }

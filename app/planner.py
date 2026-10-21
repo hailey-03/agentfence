@@ -41,6 +41,18 @@ def _submit_plan_spec(tool_names: list[str]) -> dict:
                              "required": ["tools"]}}}}
 
 
+def normalize_plan(plan: Plan, tool_names: list[str]) -> Plan:
+    """약한 모델이 같은 도구를 여러 번 내는 경우만 바로잡는다. 노출 도구별 첫 규칙만 남기고
+    노출에 없는 항목은 버린다. 누락은 채우지 않아서, 빠진 도구가 있으면 validate_plan이
+    걸러내 재시도·실패로 이어진다 (약한 모델의 중복 출력만 구제, 빈 계획은 그대로 실패)."""
+    seen: dict[str, ToolRule] = {}
+    for r in plan.tools:
+        if r.tool in tool_names and r.tool not in seen:
+            seen[r.tool] = r
+    plan.tools = list(seen.values())
+    return plan
+
+
 def validate_plan(plan: Plan, tool_names: list[str]) -> Plan:
     """노출 도구가 빠짐없이 한 번씩 있는지 확인하고, 규칙과 맞지 않는 횟수를 바로잡는다.
     사용자가 화면에서 고친 계획을 확정할 때도 이 함수를 쓴다."""
@@ -79,7 +91,7 @@ def generate_plan(task: str, tool_names: list[str], client: LlmClient) -> Plan:
         try:
             if not uses:
                 raise ValueError("submit_plan 호출이 없습니다.")
-            return validate_plan(Plan.model_validate(uses[0]["input"]), tool_names)
+            return validate_plan(normalize_plan(Plan.model_validate(uses[0]["input"]), tool_names), tool_names)
         except (ValidationError, ValueError) as e:
             feedback = f"\n\n이전 제출 오류: {e} 모든 도구를 빠짐없이 한 번씩 넣어 다시 제출하라."
     raise PlannerError("계획 초안을 만들지 못했습니다. 다시 시도하거나 화면에서 직접 작성하세요.")
