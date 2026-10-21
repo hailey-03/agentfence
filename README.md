@@ -52,7 +52,7 @@ cp .env.example .env               # JWT_SECRET_KEY 꼭 변경. 비어 있으면
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python -m pytest -q                # 53 passed 가 나오면 정상 (테스트는 MariaDB 없이 SQLite로 돈다)
+python -m pytest -q                # 42 passed, 11 skipped 면 정상. pip install pymupdf 후에는 53 passed (MariaDB 없이 SQLite로 돈다)
 python -m scripts.try_it           # 계획 만들기 → 시뮬레이션 실행 → 계획 vs 실제 호출 수
 uvicorn app.main:app --reload --port 8000
 ```

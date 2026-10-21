@@ -8,19 +8,17 @@ export default function Scenarios() {
   const [tools, setTools] = useState<ToolInfo[]>([]);
   const [task, setTask] = useState("첨부한 이력서를 검토하고 지원자 hong@applicant.example 에게 서류 합격 안내를 보내줘.");
   const [pdf, setPdf] = useState<File | null>(null);
-  const [picked, setPicked] = useState<string[]>([]);   // 도구 선택 화면은 없앴다: 항상 전체 도구
   const [error, setError] = useState(""); const [busy, setBusy] = useState("");
 
-  useEffect(() => {
-    api<ToolInfo[]>("/tools").then((t) => { setTools(t); setPicked(t.map((x) => x.name)); });
-  }, []);
+  // 도구 개수 안내용. 노출 도구는 서버가 정한다 (언제나 카탈로그 전체)
+  useEffect(() => { api<ToolInfo[]>("/tools").then(setTools); }, []);
 
   async function create(e: FormEvent) {
     e.preventDefault();
     if (!pdf) { setError("PDF 파일을 선택하세요."); return; }
     setError(""); setBusy("pdf");
     const form = new FormData();
-    form.append("task", task); form.append("tools", JSON.stringify(picked)); form.append("pdf", pdf);
+    form.append("task", task); form.append("pdf", pdf);
     let s: ScenarioBrief;
     try { s = await api<ScenarioBrief>("/scenarios", { method: "POST", body: form }); }
     catch (err) { setError((err as Error).message); setBusy(""); return; }

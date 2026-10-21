@@ -54,7 +54,6 @@ class Run(Base):
     trace: Mapped[str | None] = mapped_column(BigText, nullable=True)      # TraceEvent JSON 배열
     decisions: Mapped[str | None] = mapped_column(BigText, nullable=True)  # Decision JSON 배열
     final_output: Mapped[str | None] = mapped_column(BigText, nullable=True)
-    task_success: Mapped[int | None] = mapped_column(Integer, nullable=True)
     attack_success: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 실험 Run에서만
     guardrail_result: Mapped[str | None] = mapped_column(BigText, nullable=True)  # 조건 D
     eval_report_id: Mapped[int | None] = mapped_column(ForeignKey("eval_reports.id"), nullable=True)

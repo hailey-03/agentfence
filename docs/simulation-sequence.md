@@ -1,5 +1,7 @@
 # 시뮬레이션 동작
 
+> 이 문서는 `feat/simulation-v2` 시점(v0.7 → v0.8 전환)의 기록이다. 그 뒤로 `diff()`가 추가됐고(#8), 업무 성공 지표 `task_success`와 계획 미리 보기 API는 제거됐다. 지금 코드 기준 동작은 [docs/sequence](sequence/README.md)를 본다.
+
 - 기준: `feat/simulation-v2` 브랜치. 원격 main(`9c29109`, 도구 14개 버전) 위에서 **정책 게이트와 카나리를 걷어낸 뒤**의 코드
 - 참여자(세로줄)는 파일 단위로 나눴다. ⚠️는 손볼 때 알아둘 동작이나 아직 PRD v0.8과 다른 점이다.
 - 7장의 예시 데이터는 가짜 LLM(`LLM_MODE=fake`)으로 실제 실행해서 얻은 값이다.
@@ -320,7 +322,7 @@ sequenceDiagram
 | 4 | 정책 게이트와 실험이 쓰던 형식이 남아 있다. `schemas.py`의 `RunState`(카나리 포함), `Decision`, `RuleId`, `B_RULES`, `C_RULES`, 그리고 `models.py`의 `eval_reports` 테이블과 `runs`의 `eval_report_id`, `attack_success`, `doc_id` 칸이다. 공유 파일과 DB 구조 변경이라 공통 정리 때 지운다 | [schemas.py](../app/schemas.py), [models.py](../app/models.py) | 공통 정리 |
 | 5 | Guardrails 검사(`check_document`)와 `GUARDRAIL_*` 설정이 남아 있지만 아무도 부르지 않는다 | [llm.py:83](../app/llm.py#L83), [config.py](../app/config.py) | B |
 | 6 | 가짜 LLM이 첨부 태그 문자열(`\n\n<첨부문서>`)로 요청을 잘라낸다. user 메시지 형식을 PRD대로 바꾸면 가짜 LLM도 같이 고쳐야 한다. 안 고치면 메시지 전체가 요청으로 쓰여서, 예를 들어 PDF 속 "저장"이라는 단어에 반응하게 된다 | [simulator.py:12-13](../app/simulator.py#L12-L13), [llm.py:153](../app/llm.py#L153) | B, C |
-| 7 | `task_succeeded()`와 `runs.task_success`가 남아 있다. 결과 화면에서는 뺐지만 DB 칸, API 응답, 시나리오 상세의 실행 이력("업무 성공/실패")에는 그대로 보인다. `diff()`를 붙일 때 함께 지운다 | [scenarios.py:90-98](../app/scenarios.py#L90-L98), [ScenarioDetail.tsx:103](../web/src/pages/ScenarioDetail.tsx#L103) | B, C |
+| 7 | ✅ 해결: `task_succeeded()`와 `runs.task_success`를 지웠다(API 응답, 실행 이력 문구 포함). Run 판정은 `status`와 `diff()` 결과만 쓴다 | `scenarios.py`, `models.py`, `ScenarioDetail.tsx` | B, C |
 | 8 | 도구 이름이 PRD와 다르다. 원격 main에서 `save_summary` → `summarize_note`, `send_message` → `send_email`로 바뀌고 도구가 14개로 늘었다. PRD의 AC3 문구("save_summary MUST")와 부록 시연 시나리오는 새 이름으로 읽어야 한다 | [catalog.py](../app/catalog.py) | 공통 |
 
 ### 시뮬레이터 자체의 특이점
